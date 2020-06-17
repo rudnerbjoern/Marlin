@@ -812,13 +812,7 @@
  *   http://blog.kyneticcnc.com/2018/10/computing-junction-deviation-for-marlin.html
  */
 #if DISABLED(CLASSIC_JERK)
-<<<<<<< Updated upstream
-  #define JUNCTION_DEVIATION_MM 0.013 // (mm) Distance from real junction edge
-  #define JD_HANDLE_SMALL_SEGMENTS    // Use curvature estimation instead of just the junction angle
-                                      // for small segments (< 1mm) with large junction angles (> 135°).
-=======
   #define JUNCTION_DEVIATION_MM 0.08  // (mm) Distance from real junction edge
->>>>>>> Stashed changes
 #endif
 
 /**
@@ -2145,14 +2139,11 @@
 //=============================================================================
 
 //
-<<<<<<< Updated upstream
 // Robin nano v2.0 SPI touch screen
 //
 //#define SPI_GRAPHICAL_TFT
 
 //
-=======
->>>>>>> Stashed changes
 // Ender-3 v2 OEM display. A DWIN display with Rotary Encoder.
 //
 //#define DWIN_CREALITY_LCD
