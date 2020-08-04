@@ -35,9 +35,10 @@
 #include "pic_manager.h"
 #include <lvgl.h>
 
+#include "../../../touch/xpt2046.h"
+
 #include "../../../../MarlinCore.h"
 #include "../../../../module/temperature.h"
-#include "../../../../feature/touch/xpt2046.h"
 #include "../../../../sd/cardreader.h"
 
 uint8_t pw_det_sta, pw_off_sta, mt_det_sta, mt_det2_sta, mt_det3_sta;
@@ -590,6 +591,8 @@ void disp_char_1624(uint16_t x, uint16_t y, uint8_t c, uint16_t charColor, uint1
 }
 
 void disp_string(uint16_t x, uint16_t y, const char * string, uint16_t charColor, uint16_t bkColor) {
+  // Select TFT SPI so it can receive data
+  TERN_(TFT_LVGL_UI_SPI, SPI_TFT.spi_init(SPI_FULL_SPEED));
   while (*string != '\0') {
     disp_char_1624(x, y, *string, charColor, bkColor);
     string++;
@@ -599,10 +602,8 @@ void disp_string(uint16_t x, uint16_t y, const char * string, uint16_t charColor
 
 //static lv_obj_t * scr_test;
 void disp_assets_update() {
-  #if DISABLED(TFT_LVGL_UI_SPI)
-    LCD_Clear(0x0000);
-  #endif
-  disp_string(100, 150, "Assets Updating...", 0xFFFF, 0x0000);
+  TERN(TFT_LVGL_UI_SPI,, LCD_Clear(0x0000));
+  disp_string(100, 140, "Assets Updating...", 0xFFFF, 0x0000);
 }
 
 void disp_assets_update_progress(const char *msg) {
@@ -610,7 +611,7 @@ void disp_assets_update_progress(const char *msg) {
   memset(buf, ' ', COUNT(buf));
   strncpy(buf, msg, strlen(msg));
   buf[COUNT(buf)-1] = '\0';
-  disp_string(100, 200, buf, 0xFFFF, 0x0000);
+  disp_string(100, 165, buf, 0xFFFF, 0x0000);
 }
 
 uint8_t mks_test_flag = 0;
