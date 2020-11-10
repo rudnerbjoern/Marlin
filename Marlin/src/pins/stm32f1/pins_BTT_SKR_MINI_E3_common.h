@@ -64,6 +64,13 @@
 #endif
 
 //
+// Power-loss Detection
+//
+#ifndef POWER_LOSS_PIN
+  #define POWER_LOSS_PIN                    PC12  // Power Loss Detection: PWR-DET
+#endif
+
+//
 // Steppers
 //
 #define X_ENABLE_PIN                        PB14
