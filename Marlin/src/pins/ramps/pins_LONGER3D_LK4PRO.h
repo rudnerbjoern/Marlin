@@ -20,3 +20,19 @@
  *
  */
 #pragma once
+
+// Longer UI assumptions
+#if HOTENDS > 1 || E_STEPPERS > 1
+  #error "Longer UI supports only 1 hotend / E-stepper."
+#endif
+
+#define BOARD_INFO_NAME "LGT Kit 1.0"
+
+#define SD_DETECT_PIN                         49
+#define FIL_RUNOUT_PIN                         2
+#define Z_MIN_PIN                             35
+
+//
+// Import RAMPS 1.4 pins
+//
+#include "pins_RAMPS.h"

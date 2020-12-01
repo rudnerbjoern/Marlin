@@ -4,7 +4,6 @@
  *
  * Based on Sprinter and grbl.
  * Copyright (c) 2011 Camiel Gubbels / Erik van der Zalm
- * Copyright (c) 2017 Victor Perez
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,32 +19,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
-#if defined(STM32GENERIC) && (defined(STM32F4) || defined(STM32F7))
 
 #include "../../inc/MarlinConfig.h"
 
-#if HAS_SERVOS
+#if HAS_PRUSA_MMU1
 
-#include "Servo.h"
+#include "../module/stepper.h"
 
-int8_t libServo::attach(const int pin) {
-  if (servoIndex >= MAX_SERVOS) return -1;
-  return super::attach(pin);
+void select_multiplexed_stepper(const uint8_t e) {
+  planner.synchronize();
+  disable_e_steppers();
+  WRITE(E_MUX0_PIN, TEST(e, 0) ? HIGH : LOW);
+  WRITE(E_MUX1_PIN, TEST(e, 1) ? HIGH : LOW);
+  WRITE(E_MUX2_PIN, TEST(e, 2) ? HIGH : LOW);
+  safe_delay(100);
 }
 
-int8_t libServo::attach(const int pin, const int min, const int max) {
-  return super::attach(pin, min, max);
-}
-
-void libServo::move(const int value) {
-  constexpr uint16_t servo_delay[] = SERVO_DELAY;
-  static_assert(COUNT(servo_delay) == NUM_SERVOS, "SERVO_DELAY must be an array NUM_SERVOS long.");
-  if (attach(0) >= 0) {
-    write(value);
-    safe_delay(servo_delay[servoIndex]);
-    TERN_(DEACTIVATE_SERVOS_AFTER_MOVE, detach());
-  }
-}
-
-#endif // HAS_SERVOS
-#endif // STM32GENERIC && (STM32F4 || STM32F7)
+#endif // HAS_PRUSA_MMU1

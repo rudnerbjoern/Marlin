@@ -21,21 +21,29 @@
  */
 #pragma once
 
-/**
- * Test STM32F4/7-specific configuration values for errors at compile-time.
- */
-//#if ENABLED(SPINDLE_LASER_PWM) && !(SPINDLE_LASER_PWM_PIN == 4 || SPINDLE_LASER_PWM_PIN == 6 || SPINDLE_LASER_PWM_PIN == 11)
-//  #error "SPINDLE_LASER_PWM_PIN must use SERVO0, SERVO1 or SERVO3 connector"
-//#endif
+#include "../inc/MarlinConfigPre.h"
+#include "../gcode/parser.h"
 
-#if ENABLED(EMERGENCY_PARSER)
-  #error "EMERGENCY_PARSER is not yet implemented for STM32F4/7. Disable EMERGENCY_PARSER to continue."
-#endif
+#include <stdint.h>
 
-#if ENABLED(FAST_PWM_FAN) || SPINDLE_LASER_FREQUENCY
-  #error "Features requiring Hardware PWM (FAST_PWM_FAN, SPINDLE_LASER_FREQUENCY) are not yet supported on STM32F4/F7."
-#endif
+#define MAX_REPEAT_NESTING 10
 
-#if HAS_TMC_SW_SERIAL
-  #error "TMC220x Software Serial is not supported on this platform."
-#endif
+typedef struct {
+  uint32_t sdpos;   // The repeat file position
+  int16_t counter;  // The counter for looping
+} repeat_marker_t;
+
+class Repeat {
+private:
+  static repeat_marker_t marker[MAX_REPEAT_NESTING];
+  static uint8_t index;
+public:
+  static inline void reset() { index = 0; }
+  static bool is_command_M808(char * const cmd) { return cmd[0] == 'M' && cmd[1] == '8' && cmd[2] == '0' && cmd[3] == '8' && !NUMERIC(cmd[4]); }
+  static void early_parse_M808(char * const cmd);
+  static void add_marker(const uint32_t sdpos, const uint16_t count);
+  static void loop();
+  static void cancel();
+};
+
+extern Repeat repeat;
