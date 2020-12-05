@@ -483,8 +483,8 @@
 #define PID_K1 0.95      // Smoothing factor within any PID loop
 
 #if ENABLED(PIDTEMP)
-  //#define PID_EDIT_MENU         // Add PID editing to the "Advanced Settings" menu. (~700 bytes of PROGMEM)
-  //#define PID_AUTOTUNE_MENU     // Add PID auto-tuning to the "Advanced Settings" menu. (~250 bytes of PROGMEM)
+  #define PID_EDIT_MENU         // Add PID editing to the "Advanced Settings" menu. (~700 bytes of PROGMEM)
+  #define PID_AUTOTUNE_MENU     // Add PID auto-tuning to the "Advanced Settings" menu. (~250 bytes of PROGMEM)
   //#define PID_PARAMS_PER_HOTEND // Uses separate PID parameters for each extruder (useful for mismatched extruders)
                                   // Set/get with gcode: M301 E[extruder number, 0-2]
 
@@ -495,10 +495,12 @@
     #define DEFAULT_Ki_LIST {   1.08,   1.08 }
     #define DEFAULT_Kd_LIST { 114.00, 114.00 }
   #else
-    // Custom Values from Björn Rudner 200°C
-    #define DEFAULT_Kp 32.21
-    #define DEFAULT_Ki 3.49
-    #define DEFAULT_Kd 74.24
+    // Custom Values from Björn Rudner 205°C
+    // M106 E0 S255
+    // M303 E0 C8 S205
+    #define DEFAULT_Kp 27.39
+    #define DEFAULT_Ki 2.92
+    #define DEFAULT_Kd 64.22
   #endif
 #endif // PIDTEMP
 
@@ -541,11 +543,11 @@
   //#define DEFAULT_bedKi .023
   //#define DEFAULT_bedKd 305.4
 
-  // FIND YOUR OWN: "M303 E-1 C8 S90" to run autotune on the bed at 90 degreesC for 8 cycles.
+  // FIND YOUR OWN: "M303 E-1 C8 S70" to run autotune on the bed at 90 degreesC for 8 cycles.
   // Custom Values from Björn Rudner at 80C
-  #define DEFAULT_bedKp 107.79
-  #define DEFAULT_bedKi 21.01
-  #define DEFAULT_bedKd 368.67
+  #define DEFAULT_bedKp 93.23
+  #define DEFAULT_bedKi 18.17
+  #define DEFAULT_bedKd 318.83
 
 #endif // PIDTEMPBED
 
@@ -997,7 +999,7 @@
 #define PROBING_MARGIN 10
 
 // X and Y axis travel speed (mm/min) between probes
-#define XY_PROBE_SPEED (133*60)
+#define XY_PROBE_SPEED (150*60)
 
 // Feedrate (mm/min) for the first approach when double-probing (MULTIPLE_PROBING == 2)
 #define Z_PROBE_SPEED_FAST HOMING_FEEDRATE_Z
