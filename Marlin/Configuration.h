@@ -993,7 +993,7 @@
 //#define NOZZLE_TO_PROBE_OFFSET { -40, -17, -1.9 } // Hero Me
 //#define NOZZLE_TO_PROBE_OFFSET { -50, -4, -1.25 } // Petsfang
 // Björn's settings
-#define NOZZLE_TO_PROBE_OFFSET { -50, -4, -1.8 } // Petsfang
+#define NOZZLE_TO_PROBE_OFFSET { -50, -4, -1.72 } // Petsfang
 
 // Most probes should stay away from the edges of the bed, but
 // with NOZZLE_AS_PROBE this can be negative for a wider probing area.
