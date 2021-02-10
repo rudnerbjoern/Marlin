@@ -22,10 +22,9 @@
  ****************************************************************************/
 
 #include "../config.h"
-
-#if BOTH(TOUCH_UI_FTDI_EVE, TOUCH_UI_COCOA_PRESS)
-
 #include "screens.h"
+
+#ifdef FTDI_COCOA_MAIN_MENU
 
 using namespace FTDI;
 using namespace Theme;
@@ -53,16 +52,16 @@ void MainMenu::onRedraw(draw_mode_t what) {
     CommandProcessor cmd;
     cmd.colors(normal_btn)
        .font(Theme::font_medium)
-       .tag(2).button( MOVE_XYZ_POS,          GET_TEXT_F(MSG_XYZ_MOVE))
-       .tag(3).button( TEMPERATURE_POS,       GET_TEXT_F(MSG_TEMPERATURE))
+       .tag(2).button(MOVE_XYZ_POS,          GET_TEXT_F(MSG_XYZ_MOVE))
+       .tag(3).button(TEMPERATURE_POS,       GET_TEXT_F(MSG_TEMPERATURE))
        .enabled(BOTH(HAS_LEVELING, HAS_BED_PROBE))
-       .tag(4).button( ZPROBE_ZOFFSET_POS,    GET_TEXT_F(MSG_ZPROBE_ZOFFSET))
-       .tag(5).button( MOVE_E_POS,            GET_TEXT_F(MSG_E_MOVE))
-       .tag(6).button( SPEED_POS,             GET_TEXT_F(MSG_PRINT_SPEED))
-       .tag(7).button( ADVANCED_SETTINGS_POS, GET_TEXT_F(MSG_ADVANCED_SETTINGS))
-       .tag(8).button( ABOUT_PRINTER_POS,     GET_TEXT_F(MSG_INFO_MENU))
+       .tag(4).button(ZPROBE_ZOFFSET_POS,    GET_TEXT_F(MSG_ZPROBE_ZOFFSET))
+       .tag(5).button(MOVE_E_POS,            GET_TEXT_F(MSG_E_MOVE))
+       .tag(6).button(SPEED_POS,             GET_TEXT_F(MSG_PRINT_SPEED))
+       .tag(7).button(ADVANCED_SETTINGS_POS, GET_TEXT_F(MSG_ADVANCED_SETTINGS))
+       .tag(8).button(ABOUT_PRINTER_POS,     GET_TEXT_F(MSG_INFO_MENU))
        .colors(action_btn)
-       .tag(1).button( BACK_POS,              GET_TEXT_F(MSG_BACK));
+       .tag(1).button(BACK_POS,              GET_TEXT_F(MSG_BACK));
   }
 }
 
@@ -86,4 +85,4 @@ bool MainMenu::onTouchEnd(uint8_t tag) {
   return true;
 }
 
-#endif // TOUCH_UI_FTDI_EVE
+#endif // FTDI_COCOA_MAIN_MENU
