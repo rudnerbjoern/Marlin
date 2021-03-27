@@ -70,7 +70,7 @@ char CardReader::filename[FILENAME_LENGTH], CardReader::longFilename[LONG_FILENA
 IF_DISABLED(NO_SD_AUTOSTART, uint8_t CardReader::autofile_index); // = 0
 
 #if BOTH(HAS_MULTI_SERIAL, BINARY_FILE_TRANSFER)
-  int8_t CardReader::transfer_port_index;
+  serial_index_t CardReader::transfer_port_index;
 #endif
 
 // private:
@@ -1084,7 +1084,9 @@ void CardReader::cdroot() {
           #if DISABLED(SDSORT_USES_RAM)
             selectFileByIndex(o1);              // Pre-fetch the first entry and save it
             strcpy(name1, longest_filename());  // so the loop only needs one fetch
-            TERN_(HAS_FOLDER_SORTING, bool dir1 = flag.filenameIsDir);
+            #if ENABLED(HAS_FOLDER_SORTING)
+              bool dir1 = flag.filenameIsDir;
+            #endif
           #endif
 
           for (uint16_t j = 0; j < i; ++j) {
