@@ -387,13 +387,15 @@ static float auto_tune_a() {
  */
 void GcodeSuite::G33() {
 
+  TERN_(FULL_REPORT_TO_HOST_FEATURE, set_and_report_grblstate(M_PROBE));
+
   const int8_t probe_points = parser.intval('P', DELTA_CALIBRATION_DEFAULT_POINTS);
   if (!WITHIN(probe_points, 0, 10)) {
     SERIAL_ECHOLNPGM("?(P)oints implausible (0-10).");
     return;
   }
 
-  const bool towers_set = !parser.seen('T');
+  const bool towers_set = !parser.seen_test('T');
 
   const float calibration_precision = parser.floatval('C', 0.0f);
   if (calibration_precision < 0) {
@@ -413,7 +415,7 @@ void GcodeSuite::G33() {
     return;
   }
 
-  const bool stow_after_each = parser.seen('E');
+  const bool stow_after_each = parser.seen_test('E');
 
   const bool _0p_calibration      = probe_points == 0,
              _1p_calibration      = probe_points == 1 || probe_points == -1,
@@ -645,6 +647,8 @@ void GcodeSuite::G33() {
   while (((zero_std_dev < test_precision && iterations < 31) || iterations <= force_iterations) && zero_std_dev > calibration_precision);
 
   ac_cleanup(TERN_(HAS_MULTI_HOTEND, old_tool_index));
+
+  TERN_(FULL_REPORT_TO_HOST_FEATURE, set_and_report_grblstate(M_IDLE));
 }
 
 #endif // DELTA_AUTO_CALIBRATION
