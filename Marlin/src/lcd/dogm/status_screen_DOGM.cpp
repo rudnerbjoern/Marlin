@@ -57,6 +57,10 @@
   #include "../../feature/cooler.h"
 #endif
 
+#if ENABLED(I2C_AMMETER)
+  #include "../../feature/ammeter.h"
+#endif
+
 #if HAS_POWER_MONITOR
   #include "../../feature/power_monitor.h"
 #endif
@@ -205,6 +209,14 @@ FORCE_INLINE void _draw_centered_temp(const celsius_t temp, const uint8_t tx, co
   }
 #endif
 
+#if DO_DRAW_AMMETER
+  FORCE_INLINE void _draw_centered_current(const float current, const uint8_t tx, const uint8_t ty) {
+    const char *str = ftostr31ns(current);
+    const uint8_t len = str[0] != ' ' ? 3 : str[1] != ' ' ? 2 : 1;
+    lcd_put_u8str(tx - len * (INFO_FONT_WIDTH) / 2 + 1, ty, &str[3-len]);
+  }
+#endif
+
 #if DO_DRAW_HOTENDS
 
   // Draw hotend bitmap with current and target temperatures
@@ -228,18 +240,12 @@ FORCE_INLINE void _draw_centered_temp(const celsius_t temp, const uint8_t tx, co
       #define HOTEND_DOT    false
     #endif
 
-    #if ANIM_HOTEND && BOTH(STATUS_HOTEND_INVERTED, STATUS_HOTEND_NUMBERLESS)
-      #define OFF_BMP(N) status_hotend_b_bmp
-      #define ON_BMP(N)  status_hotend_a_bmp
-    #elif ANIM_HOTEND && DISABLED(STATUS_HOTEND_INVERTED) && ENABLED(STATUS_HOTEND_NUMBERLESS)
-      #define OFF_BMP(N) status_hotend_a_bmp
-      #define ON_BMP(N)  status_hotend_b_bmp
-    #elif BOTH(ANIM_HOTEND, STATUS_HOTEND_INVERTED)
-      #define OFF_BMP(N) status_hotend##N##_b_bmp
-      #define ON_BMP(N)  status_hotend##N##_a_bmp
+    #if ENABLED(STATUS_HOTEND_NUMBERLESS)
+      #define OFF_BMP(N) TERN(STATUS_HOTEND_INVERTED, status_hotend_b_bmp, status_hotend_a_bmp)
+      #define ON_BMP(N)  TERN(STATUS_HOTEND_INVERTED, status_hotend_a_bmp, status_hotend_b_bmp)
     #else
-      #define OFF_BMP(N) status_hotend##N##_a_bmp
-      #define ON_BMP(N)  status_hotend##N##_b_bmp
+      #define OFF_BMP(N) TERN(STATUS_HOTEND_INVERTED, status_hotend##N##_b_bmp, status_hotend##N##_a_bmp)
+      #define ON_BMP(N)  TERN(STATUS_HOTEND_INVERTED, status_hotend##N##_a_bmp, status_hotend##N##_b_bmp)
     #endif
 
     #if STATUS_HOTEND_BITMAPS > 1
@@ -258,16 +264,17 @@ FORCE_INLINE void _draw_centered_temp(const celsius_t temp, const uint8_t tx, co
       #define HOTEND_BITMAP(N,S) status_hotend_a_bmp
     #endif
 
-    if (PAGE_CONTAINS(STATUS_HEATERS_Y, STATUS_HEATERS_BOT)) {
+    #if DISABLED(STATUS_COMBINE_HEATERS)
 
-      #define BAR_TALL (STATUS_HEATERS_HEIGHT - 2)
+      if (PAGE_CONTAINS(STATUS_HEATERS_Y, STATUS_HEATERS_BOT)) {
 
-      const float prop = target - 20,
-                  perc = prop > 0 && temp >= 20 ? (temp - 20) / prop : 0;
-      uint8_t tall = uint8_t(perc * BAR_TALL + 0.5f);
-      NOMORE(tall, BAR_TALL);
+        #define BAR_TALL (STATUS_HEATERS_HEIGHT - 2)
 
-      #if ANIM_HOTEND
+        const float prop = target - 20,
+                    perc = prop > 0 && temp >= 20 ? (temp - 20) / prop : 0;
+        uint8_t tall = uint8_t(perc * BAR_TALL + 0.5f);
+        NOMORE(tall, BAR_TALL);
+
         // Draw hotend bitmap, either whole or split by the heating percent
         const uint8_t hx = STATUS_HOTEND_X(heater_id),
                       bw = STATUS_HOTEND_BYTEWIDTH(heater_id);
@@ -280,9 +287,10 @@ FORCE_INLINE void _draw_centered_temp(const celsius_t temp, const uint8_t tx, co
           else
         #endif
             u8g.drawBitmapP(hx, STATUS_HEATERS_Y, bw, STATUS_HEATERS_HEIGHT, HOTEND_BITMAP(TERN(HAS_MMU, active_extruder, heater_id), isHeat));
-      #endif
 
-    } // PAGE_CONTAINS
+      } // PAGE_CONTAINS
+
+    #endif // !STATUS_COMBINE_HEATERS
 
     if (PAGE_UNDER(7)) {
       #if HEATER_IDLE_HANDLER
@@ -401,6 +409,13 @@ FORCE_INLINE void _draw_centered_temp(const celsius_t temp, const uint8_t tx, co
   FORCE_INLINE void _draw_flowmeter_status() {
     if (PAGE_CONTAINS(28 - INFO_FONT_ASCENT, 28 - 1))
       _draw_centered_flowrate(cooler.flowrate, STATUS_FLOWMETER_TEXT_X, 28);
+  }
+#endif
+
+#if DO_DRAW_AMMETER
+  FORCE_INLINE void _draw_ammeter_status() {
+    if (PAGE_CONTAINS(28 - INFO_FONT_ASCENT, 28 - 1))
+      _draw_centered_current(ammeter.read(), STATUS_AMMETER_TEXT_X, 28);
   }
 #endif
 
@@ -677,6 +692,13 @@ void MarlinUI::draw_status_screen() {
         u8g.drawBitmapP(STATUS_FLOWMETER_X, flowmetery, STATUS_FLOWMETER_BYTEWIDTH, flowmeterh, blink && cooler.flowpulses ? status_flowmeter_bmp2 : status_flowmeter_bmp1);
     #endif
 
+    // Laser Ammeter
+    #if DO_DRAW_AMMETER
+      const uint8_t ammetery = STATUS_AMMETER_Y(status_ammeter_bmp_mA),
+                    ammeterh = STATUS_AMMETER_HEIGHT(status_ammeter_bmp_mA);
+       if (PAGE_CONTAINS(ammetery, ammetery + ammeterh - 1))
+        u8g.drawBitmapP(STATUS_AMMETER_X, ammetery, STATUS_AMMETER_BYTEWIDTH, ammeterh, (ammeter.current < 0.1f) ? status_ammeter_bmp_mA : status_ammeter_bmp_A);
+    #endif
 
     // Heated Bed
     TERN_(DO_DRAW_BED, _draw_bed_status(blink));
@@ -689,6 +711,9 @@ void MarlinUI::draw_status_screen() {
 
     // Flowmeter
     TERN_(DO_DRAW_FLOWMETER, _draw_flowmeter_status());
+
+    // Flowmeter
+    TERN_(DO_DRAW_AMMETER, _draw_ammeter_status());
 
     // Fan, if a bitmap was provided
     #if DO_DRAW_FAN
