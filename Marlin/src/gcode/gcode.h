@@ -241,6 +241,7 @@
  * M553 - Get or set IP netmask. (Requires enabled Ethernet port)
  * M554 - Get or set IP gateway. (Requires enabled Ethernet port)
  * M569 - Enable stealthChop on an axis. (Requires at least one _DRIVER_TYPE to be TMC2130/2160/2208/2209/5130/5160)
+ * M575 - Change the serial baud rate. (Requires BAUD_RATE_GCODE)
  * M600 - Pause for filament change: "M600 X<pos> Y<pos> Z<raise> E<first_retract> L<later_retract>". (Requires ADVANCED_PAUSE_FEATURE)
  * M603 - Configure filament change: "M603 T<tool> U<unload_length> L<load_length>". (Requires ADVANCED_PAUSE_FEATURE)
  * M605 - Set Dual X-Carriage movement mode: "M605 S<mode> [X<x_offset>] [R<temp_offset>]". (Requires DUAL_X_CARRIAGE)
@@ -297,6 +298,7 @@
  * M997 - Perform in-application firmware update
  * M999 - Restart after being stopped by error
  * D... - Custom Development G-code. Add hooks to 'gcode_D.cpp' for developers to test features. (Requires MARLIN_DEV_MODE)
+ *        D576 - Set buffer monitoring options. (Requires BUFFER_MONITORING)
  *
  * "T" Codes
  *
@@ -392,7 +394,7 @@ public:
   static void process_subcommands_now(char * gcode);
 
   static inline void home_all_axes(const bool keep_leveling=false) {
-    process_subcommands_now_P(keep_leveling ? G28_STR : TERN(G28_L0_ENSURES_LEVELING_OFF, PSTR("G28L0"), G28_STR));
+    process_subcommands_now_P(keep_leveling ? G28_STR : TERN(CAN_SET_LEVELING_AFTER_G28, PSTR("G28L0"), G28_STR));
   }
 
   #if EITHER(HAS_AUTO_REPORTING, HOST_KEEPALIVE_FEATURE)
@@ -424,6 +426,7 @@ public:
     static uint8_t host_keepalive_interval;
 
     static void host_keepalive();
+    static inline bool host_keepalive_is_paused() { return busy_state >= PAUSED_FOR_USER; }
 
     #define KEEPALIVE_STATE(N) REMEMBER(_KA_, gcode.busy_state, gcode.N)
   #else
@@ -524,7 +527,7 @@ private:
     static void G38(const int8_t subcode);
   #endif
 
-  #if ENABLED(HAS_MESH)
+  #if HAS_MESH
     static void G42();
   #endif
 
@@ -557,27 +560,30 @@ private:
     static void G425();
   #endif
 
-  #if ENABLED(HAS_RESUME_CONTINUE)
+  #if HAS_RESUME_CONTINUE
     static void M0_M1();
   #endif
 
   #if HAS_CUTTER
     static void M3_M4(const bool is_M4);
     static void M5();
-    #if ENABLED(AIR_EVACUATION)
-      static void M10();
-      static void M11();
-    #endif
   #endif
 
-  #if ENABLED(COOLANT_CONTROL)
-    #if ENABLED(COOLANT_MIST)
-      static void M7();
-    #endif
-    #if ENABLED(COOLANT_FLOOD)
-      static void M8();
-    #endif
+  #if ENABLED(COOLANT_MIST)
+    static void M7();
+  #endif
+
+  #if EITHER(AIR_ASSIST, COOLANT_FLOOD)
+    static void M8();
+  #endif
+
+  #if EITHER(AIR_ASSIST, COOLANT_CONTROL)
     static void M9();
+  #endif
+
+  #if ENABLED(AIR_EVACUATION)
+    static void M10();
+    static void M11();
   #endif
 
   #if ENABLED(EXTERNAL_CLOSED_LOOP_CONTROLLER)
@@ -609,7 +615,7 @@ private:
   static void M31();
 
   #if ENABLED(SDSUPPORT)
-    #if ENABLED(HAS_MEDIA_SUBCALLS)
+    #if HAS_MEDIA_SUBCALLS
       static void M32();
     #endif
     #if ENABLED(LONG_FILENAME_HOST_SUPPORT)
@@ -740,7 +746,7 @@ private:
     static void M149();
   #endif
 
-  #if ENABLED(HAS_COLOR_LEDS)
+  #if HAS_COLOR_LEDS
     static void M150();
   #endif
 
@@ -774,7 +780,7 @@ private:
   static void M204();
   static void M205();
 
-  #if ENABLED(HAS_M206_COMMAND)
+  #if HAS_M206_COMMAND
     static void M206();
   #endif
 
@@ -788,11 +794,11 @@ private:
 
   static void M211();
 
-  #if ENABLED(HAS_MULTI_EXTRUDER)
+  #if HAS_MULTI_EXTRUDER
     static void M217();
   #endif
 
-  #if ENABLED(HAS_HOTEND_OFFSET)
+  #if HAS_HOTEND_OFFSET
     static void M218();
   #endif
 
@@ -810,7 +816,7 @@ private:
     static void M240();
   #endif
 
-  #if ENABLED(HAS_LCD_CONTRAST)
+  #if HAS_LCD_CONTRAST
     static void M250();
   #endif
 
@@ -830,7 +836,7 @@ private:
     static void M290();
   #endif
 
-  #if ENABLED(HAS_BUZZER)
+  #if HAS_BUZZER
     static void M300();
   #endif
 
@@ -842,7 +848,7 @@ private:
     static void M302();
   #endif
 
-  #if ENABLED(HAS_PID_HEATING)
+  #if HAS_PID_HEATING
     static void M303();
   #endif
 
@@ -850,7 +856,7 @@ private:
     static void M304();
   #endif
 
-  #if ENABLED(HAS_USER_THERMISTORS)
+  #if HAS_USER_THERMISTORS
     static void M305();
   #endif
 
@@ -891,7 +897,7 @@ private:
     static void M402();
   #endif
 
-  #if ENABLED(HAS_PRUSA_MMU2)
+  #if HAS_PRUSA_MMU2
     static void M403();
   #endif
 
@@ -902,11 +908,11 @@ private:
     static void M407();
   #endif
 
-  #if ENABLED(HAS_FILAMENT_SENSOR)
+  #if HAS_FILAMENT_SENSOR
     static void M412();
   #endif
 
-  #if ENABLED(HAS_MULTI_LANGUAGE)
+  #if HAS_MULTI_LANGUAGE
     static void M414();
   #endif
 
@@ -919,11 +925,11 @@ private:
     static void M425();
   #endif
 
-  #if ENABLED(HAS_M206_COMMAND)
+  #if HAS_M206_COMMAND
     static void M428();
   #endif
 
-  #if ENABLED(HAS_POWER_MONITOR)
+  #if HAS_POWER_MONITOR
     static void M430();
   #endif
 
@@ -974,11 +980,11 @@ private:
     static void M603();
   #endif
 
-  #if ENABLED(HAS_DUPLICATION_MODE)
+  #if HAS_DUPLICATION_MODE
     static void M605();
   #endif
 
-  #if ENABLED(IS_KINEMATIC)
+  #if IS_KINEMATIC
     static void M665();
   #endif
 
@@ -1003,7 +1009,7 @@ private:
     static void M810_819();
   #endif
 
-  #if ENABLED(HAS_BED_PROBE)
+  #if HAS_BED_PROBE
     static void M851();
   #endif
 
@@ -1036,7 +1042,7 @@ private:
   #if HAS_TRINAMIC_CONFIG
     static void M122();
     static void M906();
-    #if ENABLED(HAS_STEALTHCHOP)
+    #if HAS_STEALTHCHOP
       static void M569();
     #endif
     #if ENABLED(MONITOR_DRIVER_STATUS)
@@ -1063,7 +1069,7 @@ private:
     static void M907();
     #if EITHER(HAS_MOTOR_CURRENT_SPI, HAS_MOTOR_CURRENT_DAC)
       static void M908();
-      #if ENABLED(HAS_MOTOR_CURRENT_DAC)
+      #if HAS_MOTOR_CURRENT_DAC
         static void M909();
         static void M910();
       #endif
