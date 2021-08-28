@@ -239,6 +239,22 @@ public:
     static void media_changed(const uint8_t old_stat, const uint8_t stat);
   #endif
 
+  #if HAS_LCD_BRIGHTNESS
+    #ifndef MIN_LCD_BRIGHTNESS
+      #define MIN_LCD_BRIGHTNESS   1
+    #endif
+    #ifndef MAX_LCD_BRIGHTNESS
+      #define MAX_LCD_BRIGHTNESS 255
+    #endif
+    #ifndef DEFAULT_LCD_BRIGHTNESS
+      #define DEFAULT_LCD_BRIGHTNESS MAX_LCD_BRIGHTNESS
+    #endif
+    static uint8_t brightness;
+    static bool backlight;
+    static void set_brightness(const uint8_t value);
+    FORCE_INLINE static void refresh_brightness() { set_brightness(brightness); }
+  #endif
+
   #if ENABLED(DWIN_CREALITY_LCD)
     static void refresh();
   #else
@@ -296,6 +312,17 @@ public:
   #endif
 
   #if HAS_STATUS_MESSAGE
+
+    #if HAS_WIRED_LCD
+      #if ENABLED(STATUS_MESSAGE_SCROLLING)
+        #define MAX_MESSAGE_LENGTH _MAX(LONG_FILENAME_LENGTH, MAX_LANG_CHARSIZE * 2 * (LCD_WIDTH))
+      #else
+        #define MAX_MESSAGE_LENGTH (MAX_LANG_CHARSIZE * (LCD_WIDTH))
+      #endif
+    #else
+      #define MAX_MESSAGE_LENGTH 63
+    #endif
+
     static char status_message[];
     static uint8_t alert_level; // Higher levels block lower levels
 
@@ -360,22 +387,22 @@ public:
       #endif
 
       #if HAS_MARLINUI_U8GLIB
-
         static void set_font(const MarlinFont font_nr);
+      #elif IS_DWIN_MARLINUI
+        static void set_font(const uint8_t font_nr);
+      #endif
 
-      #else
-
+      #if HAS_MARLINUI_HD44780
         static void set_custom_characters(const HD44780CharSet screen_charset=CHARSET_INFO);
+      #endif
 
-        #if ENABLED(LCD_PROGRESS_BAR)
-          static millis_t progress_bar_ms;  // Start time for the current progress bar cycle
-          static void draw_progress_bar(const uint8_t percent);
-          #if PROGRESS_MSG_EXPIRE > 0
-            static millis_t expire_status_ms; // = 0
-            FORCE_INLINE static void reset_progress_bar_timeout() { expire_status_ms = 0; }
-          #endif
+      #if ENABLED(LCD_PROGRESS_BAR) && !HAS_MARLINUI_U8GLIB
+        static millis_t progress_bar_ms;  // Start time for the current progress bar cycle
+        static void draw_progress_bar(const uint8_t percent);
+        #if PROGRESS_MSG_EXPIRE > 0
+          static millis_t expire_status_ms; // = 0
+          FORCE_INLINE static void reset_progress_bar_timeout() { expire_status_ms = 0; }
         #endif
-
       #endif
 
       static uint8_t lcd_status_update_delay;
@@ -418,6 +445,10 @@ public:
       static bool drawing_screen, first_page;
     #else
       static constexpr bool drawing_screen = false, first_page = true;
+    #endif
+
+    #if IS_DWIN_MARLINUI
+      static bool did_first_redraw;
     #endif
 
     static bool get_blink();

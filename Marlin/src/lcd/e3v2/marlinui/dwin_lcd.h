@@ -1,6 +1,6 @@
 /**
  * Marlin 3D Printer Firmware
- * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
+ * Copyright (c) 2021 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
  * Based on Sprinter and grbl.
  * Copyright (c) 2011 Camiel Gubbels / Erik van der Zalm
@@ -22,11 +22,8 @@
 #pragma once
 
 /********************************************************************************
- * @file     dwin_lcd.h
- * @author   LEO / Creality3D
- * @date     2019/07/18
- * @version  2.0.1
- * @brief    迪文屏控制操作函数
+ * @file     lcd/e3v2/marlinui/dwin_lcd.h
+ * @brief    DWIN screen control functions
  ********************************************************************************/
 
 #include <stdint.h>
@@ -39,8 +36,101 @@
 #define DWIN_SCROLL_UP   2
 #define DWIN_SCROLL_DOWN 3
 
-#define DWIN_WIDTH  272
-#define DWIN_HEIGHT 480
+#if DISABLED(DWIN_MARLINUI_LANDSCAPE)
+  #define DWIN_WIDTH  272
+  #define DWIN_HEIGHT 480
+#else
+  #define DWIN_WIDTH  480
+  #define DWIN_HEIGHT 272
+#endif
+
+// Picture ID
+#define DWIN_Boot_Horiz      0
+#define DWIN_Boot_Vert       1
+#define DWIN_MarlinUI_Assets 2
+
+/**
+ * 3-.0：The font size, 0x00-0x09, corresponds to the font size below:
+ * 0x00=6*12   0x01=8*16   0x02=10*20  0x03=12*24  0x04=14*28
+ * 0x05=16*32  0x06=20*40  0x07=24*48  0x08=28*56  0x09=32*64
+ */
+#define font6x12  0x00
+#define font8x16  0x01
+#define font10x20 0x02
+#define font12x24 0x03
+#define font14x28 0x04
+#define font16x32 0x05
+#define font20x40 0x06
+#define font24x48 0x07
+#define font28x56 0x08
+#define font32x64 0x09
+
+#define DWIN_FONT_MENU  font10x20
+#define DWIN_FONT_STAT  font14x28
+#define DWIN_FONT_HEAD  font10x20
+#define DWIN_FONT_ALERT font14x28
+
+// Color
+#define Color_White       0xFFFF
+#define Color_Yellow      0xFF0F
+#define Color_Error_Red   0xB000  // Error!
+#define Color_Bg_Red      0xF00F  // Red background color
+#define Color_Bg_Window   0x31E8  // Popup background color
+#define Color_Bg_Heading  0x3344  // Static Heading
+#define Color_Bg_Blue     0x1125  // Dark blue background color
+#define Color_Bg_Black    0x0841  // Black background color
+#define Color_IconBlue    0x45FA  // Lighter blue that matches icons/accents
+#define Popup_Text_Color  0xD6BA  // Popup font background color
+#define Line_Color        0x3A6A  // Split line color
+#define Rectangle_Color   0xEE2F  // Blue square cursor color
+#define Percent_Color     0xFE29  // Percentage color
+#define BarFill_Color     0x10E4  // Fill color of progress bar
+#define Select_Color      0x33BB  // Selected color
+
+// Character matrix width x height
+//#define LCD_WIDTH ((DWIN_WIDTH) / 8)
+//#define LCD_HEIGHT ((DWIN_HEIGHT) / 12)
+
+// ICON ID
+#define BOOT_ICON           3 // Icon set file 3.ICO
+#define ICON                4 // Icon set file 4.ICO
+
+// MarlinUI Boot Icons
+#define ICON_MarlinBoot            0
+#define ICON_OpenSource            1
+#define ICON_GitHubURL             2
+#define ICON_MarlinURL             3
+#define ICON_Copyright             4
+
+// MarlinUI Icons
+#define ICON_LOGO_Marlin           0
+#define ICON_HotendOff             1
+#define ICON_HotendOn              2
+#define ICON_BedOff                3
+#define ICON_BedOn                 4
+#define ICON_Fan0                  5
+#define ICON_Fan1                  6
+#define ICON_Fan2                  7
+#define ICON_Fan3                  8
+#define ICON_Halted                9
+#define ICON_Question             10
+#define ICON_Alert                11
+#define ICON_RotateCW             12
+#define ICON_RotateCCW            13
+#define ICON_UpArrow              14
+#define ICON_DownArrow            15
+#define ICON_BedLine              16
+
+#define ICON_AdvSet               ICON_Language
+#define ICON_HomeOff              ICON_AdvSet
+#define ICON_HomeOffX             ICON_StepX
+#define ICON_HomeOffY             ICON_StepY
+#define ICON_HomeOffZ             ICON_StepZ
+#define ICON_ProbeOff             ICON_AdvSet
+#define ICON_ProbeOffX            ICON_StepX
+#define ICON_ProbeOffY            ICON_StepY
+#define ICON_PIDNozzle            ICON_SetEndTemp
+#define ICON_PIDbed               ICON_SetBedTemp
 
 /*-------------------------------------- System variable function --------------------------------------*/
 
@@ -68,10 +158,11 @@ void DWIN_UpdateLCD(void);
 void DWIN_Frame_Clear(const uint16_t color);
 
 // Draw a point
+//  color: point color
 //  width: point width   0x01-0x0F
 //  height: point height 0x01-0x0F
 //  x,y: upper left point
-void DWIN_Draw_Point(uint8_t width, uint8_t height, uint16_t x, uint16_t y);
+void DWIN_Draw_Point(uint16_t color, uint8_t width, uint8_t height, uint16_t x, uint16_t y);
 
 // Draw a line
 //  color: Line segment color
@@ -125,20 +216,18 @@ void DWIN_Frame_AreaMove(uint8_t mode, uint8_t dir, uint16_t dis,
 /*---------------------------------------- Text related functions ----------------------------------------*/
 
 // Draw a string
-//  widthAdjust: true=self-adjust character width; false=no adjustment
 //  bShow: true=display background color; false=don't display background color
 //  size: Font size
 //  color: Character color
 //  bColor: Background color
 //  x/y: Upper-left coordinate of the string
 //  *string: The string
-void DWIN_Draw_String(bool widthAdjust, bool bShow, uint8_t size,
-                      uint16_t color, uint16_t bColor, uint16_t x, uint16_t y, char *string);
+void DWIN_Draw_String(bool bShow, uint8_t size, uint16_t color, uint16_t bColor, uint16_t x, uint16_t y, char *string);
 
 class __FlashStringHelper;
 
-inline void DWIN_Draw_String(bool widthAdjust, bool bShow, uint8_t size, uint16_t color, uint16_t bColor, uint16_t x, uint16_t y, const __FlashStringHelper *title) {
-  DWIN_Draw_String(widthAdjust, bShow, size, color, bColor, x, y, (char *)title);
+inline void DWIN_Draw_String(bool bShow, uint8_t size, uint16_t color, uint16_t bColor, uint16_t x, uint16_t y, const __FlashStringHelper *title) {
+  DWIN_Draw_String(bShow, size, color, bColor, x, y, (char *)title);
 }
 
 // Draw a positive integer

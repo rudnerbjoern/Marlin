@@ -72,7 +72,7 @@
 #define MAX31865_FAULT_OVUV 0x04        // D2
 
 // http://www.analog.com/media/en/technical-documentation/application-notes/AN709_0.pdf
-// constants for calulating temperature from the measured RTD resistance.
+// constants for calculating temperature from the measured RTD resistance.
 #define RTD_Z1 -0.0039083
 #define RTD_Z2 0.00001758480889
 #define RTD_Z3 -0.0000000231
@@ -90,6 +90,7 @@ private:
   static SPISettings spiConfig;
 
   TERN(LARGE_PINMAP, uint32_t, uint8_t) _sclk, _miso, _mosi, _cs;
+  uint8_t _spi_speed;
   float Rzero, Rref;
 
   void setConfig(uint8_t config, bool enable);

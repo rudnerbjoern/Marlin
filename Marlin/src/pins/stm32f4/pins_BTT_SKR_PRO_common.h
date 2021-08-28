@@ -204,26 +204,23 @@
   //#define E3_HARDWARE_SERIAL Serial1
   //#define E4_HARDWARE_SERIAL Serial1
 
-  //
-  // Software serial
-  //
   #define X_SERIAL_TX_PIN                   PC13
-  #define X_SERIAL_RX_PIN                   PC13
+  #define X_SERIAL_RX_PIN        X_SERIAL_TX_PIN
 
   #define Y_SERIAL_TX_PIN                   PE3
-  #define Y_SERIAL_RX_PIN                   PE3
+  #define Y_SERIAL_RX_PIN        Y_SERIAL_TX_PIN
 
   #define Z_SERIAL_TX_PIN                   PE1
-  #define Z_SERIAL_RX_PIN                   PE1
+  #define Z_SERIAL_RX_PIN        Z_SERIAL_TX_PIN
 
   #define E0_SERIAL_TX_PIN                  PD4
-  #define E0_SERIAL_RX_PIN                  PD4
+  #define E0_SERIAL_RX_PIN      E0_SERIAL_TX_PIN
 
   #define E1_SERIAL_TX_PIN                  PD1
-  #define E1_SERIAL_RX_PIN                  PD1
+  #define E1_SERIAL_RX_PIN      E1_SERIAL_TX_PIN
 
   #define E2_SERIAL_TX_PIN                  PD6
-  #define E2_SERIAL_RX_PIN                  PD6
+  #define E2_SERIAL_RX_PIN      E2_SERIAL_TX_PIN
 
   // Reduce baud rate to improve software serial reliability
   #define TMC_BAUD_RATE                    19200
@@ -254,7 +251,7 @@
   #define TEMP_BED_PIN                      PF3   // T0 <-> Bed
 #endif
 
-#ifdef TEMP_SENSOR_PROBE && !defined(TEMP_PROBE_PIN)
+#if TEMP_SENSOR_PROBE && !defined(TEMP_PROBE_PIN)
   #if TEMP_SENSOR_PROBE_IS_AD8495 || TEMP_SENSOR_PROBE == 20
     #if HOTENDS == 2
       #define TEMP_PROBE_PIN                PF10
@@ -300,7 +297,7 @@
   #define E0_AUTO_FAN_PIN               FAN1_PIN
 #endif
 
-#if ENABLED(USE_CONTROLLER_FAN) && HOTENDS < 2
+#if !defined(CONTROLLER_FAN_PIN) && ENABLED(USE_CONTROLLER_FAN) && HOTENDS < 2
   #define CONTROLLER_FAN_PIN                PE6   // Fan2
 #else
   #define FAN2_PIN                          PE6   // Fan2
@@ -370,7 +367,7 @@
 #endif
 
 #if ENABLED(BTT_MOTOR_EXPANSION)
-  /**       _____                        _____
+  /**       -----                        -----
    *    NC | . . | GND               NC | . . | GND
    *    NC | . . | M1EN            M2EN | . . | M3EN
    * M1STP | . .   M1DIR           M1RX | . .   M1DIAG
