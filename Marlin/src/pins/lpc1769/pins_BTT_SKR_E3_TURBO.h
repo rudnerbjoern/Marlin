@@ -21,11 +21,17 @@
  */
 #pragma once
 
+/**
+ * BigTreeTech SKR E3 Turbo pin assignments
+ */
+
 #include "env_validate.h"
 
 #ifndef BOARD_INFO_NAME
   #define BOARD_INFO_NAME "BTT SKR E3 Turbo"
 #endif
+
+#define USES_DIAG_JUMPERS
 
 // Onboard I2C EEPROM
 #define I2C_EEPROM
