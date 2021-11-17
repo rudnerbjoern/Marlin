@@ -2,6 +2,9 @@
  * Marlin 3D Printer Firmware
  * Copyright (c) 2020 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
+ * Based on Sprinter and grbl.
+ * Copyright (c) 2011 Camiel Gubbels / Erik van der Zalm
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -24,7 +27,7 @@
 
 #if NOT_TARGET(__STM32F1__, STM32F1xx)
   #error "Oops! Select a STM32F1 board in 'Tools > Board.'"
-#elif HOTENDS > 1 || E_STEPPERS > 1
+#elif HAS_MULTI_HOTEND || E_STEPPERS > 1
   #error "Longer3D only supports one hotend / E-stepper. Comment out this line to continue."
 #endif
 
@@ -86,9 +89,17 @@
 #define HEATER_BED_PIN                      PA8   // pin 67 (Hot Bed Mosfet)
 
 #define FAN_PIN                             PA15  // pin 77 (4cm Fan)
-#define FAN_SOFT_PWM                              // Required to avoid issues with heating or STLink
-#define FAN_MIN_PWM                           35  // Fan will not start in 1-30 range
-#define FAN_MAX_PWM                          255
+#ifdef MAPLE_STM32F1
+  #define FAN_SOFT_PWM                            // Required to avoid issues with heating or STLink
+  #define FAN_MIN_PWM                         35  // Fan will not start in 1-30 range
+  #define FAN_MAX_PWM                        255
+#else
+  #define FAST_PWM_FAN                            // STM32 Variant allow TIMER2 Hardware PWM
+  #define FAST_PWM_FAN_FREQUENCY           31400  // This frequency allow a good range, fan starts at 3%, half noise at 50%
+  #define NEEDS_HARDWARE_PWM                   1
+  #define FAN_MIN_PWM                          5
+  #define FAN_MAX_PWM                        255
+#endif
 
 //#define BEEPER_PIN                        PD13  // pin 60 (Servo PWM output 5V/GND on Board V0G+) made for BL-Touch sensor
                                                   // Can drive a PC Buzzer, if connected between PWM and 5V pins
@@ -132,12 +143,18 @@
 
   #define TFT_RESET_PIN                     PC4   // pin 33
   #define TFT_BACKLIGHT_PIN                 PD12  // pin 59
+  #define TFT_BACKLIGHT_PWM                 150   // Brightness with alt. TIM4 chan 1 (1-255)
 
   #define DOGLCD_MOSI                       -1    // Prevent auto-define by Conditionals_post.h
   #define DOGLCD_SCK                        -1
 
   // Buffer for Color UI
   #define TFT_BUFFER_SIZE                   3200
+#endif
+
+#if defined(TFT_BACKLIGHT_PWM) && !defined(MAPLE_STM32F1)
+  #define HAS_LCD_BRIGHTNESS 1
+  #define DEFAULT_LCD_BRIGHTNESS TFT_BACKLIGHT_PWM
 #endif
 
 #if ENABLED(SDIO_SUPPORT)
