@@ -201,6 +201,8 @@
   #include "ramps/pins_RAMPS_S_12.h"            // ATmega2560                             env:mega2560
 #elif MB(LONGER3D_LK1_PRO, LONGER3D_LKx_PRO)
   #include "ramps/pins_LONGER3D_LKx_PRO.h"      // ATmega2560                             env:mega2560
+#elif MB(PXMALION_CORE_I3)
+  #include "ramps/pins_PXMALION_CORE_I3.h"      // ATmega2560                             env:mega2560
 
 //
 // RAMBo and derivatives
@@ -730,6 +732,10 @@
 
 #elif MB(AGCM4_RAMPS_144)
   #include "samd/pins_RAMPS_144.h"              // SAMD51                                 env:SAMD51_grandcentral_m4
+#elif MB(BRICOLEMON_V1_0)
+  #include "samd/pins_BRICOLEMON_V1_0.h"        // SAMD51                                 env:SAMD51_grandcentral_m4
+#elif MB(BRICOLEMON_LITE_V1_0)
+  #include "samd/pins_BRICOLEMON_LITE_V1_0.h"   // SAMD51                                 env:SAMD51_grandcentral_m4
 
 //
 // Custom board (with custom PIO env)
