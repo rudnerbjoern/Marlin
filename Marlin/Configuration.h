@@ -130,7 +130,7 @@
  * Currently Ethernet (-2) is only supported on Teensy 4.1 boards.
  * :[-2, -1, 0, 1, 2, 3, 4, 5, 6, 7]
  */
-//#define SERIAL_PORT_2 -1
+#define SERIAL_PORT_2 -1
 //#define BAUDRATE_2 250000   // Enable to override BAUDRATE
 
 /**
@@ -616,8 +616,8 @@
 #define PID_K1 0.95      // Smoothing factor within any PID loop
 
 #if ENABLED(PIDTEMP)
-  //#define PID_EDIT_MENU         // Add PID editing to the "Advanced Settings" menu. (~700 bytes of PROGMEM)
-  //#define PID_AUTOTUNE_MENU     // Add PID auto-tuning to the "Advanced Settings" menu. (~250 bytes of PROGMEM)
+  #define PID_EDIT_MENU         // Add PID editing to the "Advanced Settings" menu. (~700 bytes of PROGMEM)
+  #define PID_AUTOTUNE_MENU     // Add PID auto-tuning to the "Advanced Settings" menu. (~250 bytes of PROGMEM)
   //#define PID_PARAMS_PER_HOTEND // Uses separate PID parameters for each extruder (useful for mismatched extruders)
                                   // Set/get with gcode: M301 E[extruder number, 0-2]
 
@@ -631,9 +631,9 @@
 // Custom Values from Björn Rudner 205°C
 // M106 E0 S255
 // M303 E0 C8 S205
-#define DEFAULT_Kp 27.39
-#define DEFAULT_Ki 2.92
-#define DEFAULT_Kd 64.22
+#define DEFAULT_Kp 33.58
+#define DEFAULT_Ki 3.78
+#define DEFAULT_Kd 74.58
   #endif
 #endif // PIDTEMP
 
@@ -676,7 +676,7 @@
 //#define DEFAULT_bedKi .023
 //#define DEFAULT_bedKd 305.4
 
-// FIND YOUR OWN: "M303 E-1 C8 S70" to run autotune on the bed at 90 degreesC for 8 cycles.
+// FIND YOUR OWN: "M303 E-1 C8 S70" to run autotune on the bed at 70 degreesC for 8 cycles.
 // Custom Values from Björn Rudner at 80C
 #define DEFAULT_bedKp 93.23
 #define DEFAULT_bedKi 18.17
@@ -2996,7 +2996,7 @@
 #endif
 
 // Support for Adafruit Neopixel LED driver
-// #define NEOPIXEL_LED
+//#define NEOPIXEL_LED
 #if ENABLED(NEOPIXEL_LED)
   #define NEOPIXEL_TYPE   NEO_GRBW // NEO_GRBW / NEO_GRB - four/three channel driver type (defined in Adafruit_NeoPixel.h)
   //#define NEOPIXEL_PIN     4     // LED driving pin
