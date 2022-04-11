@@ -78,6 +78,8 @@ public:
       static void preheat_for_probing(const celsius_t hotend_temp, const celsius_t bed_temp);
     #endif
 
+    static void probe_error_stop();
+
     static bool set_deployed(const bool deploy);
 
     #if IS_KINEMATIC
@@ -138,7 +140,7 @@ public:
 
   #else
 
-    static constexpr xyz_pos_t offset = xyz_pos_t(LINEAR_AXIS_ARRAY(0, 0, 0, 0, 0, 0)); // See #16767
+    static constexpr xyz_pos_t offset = xyz_pos_t(NUM_AXIS_ARRAY(0, 0, 0, 0, 0, 0)); // See #16767
 
     static bool set_deployed(const bool) { return false; }
 
