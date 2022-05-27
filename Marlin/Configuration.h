@@ -37,7 +37,7 @@
  *
  * Advanced settings can be found in Configuration_adv.h
  */
-#define CONFIGURATION_H_VERSION 02000903
+#define CONFIGURATION_H_VERSION 02010000
 
 //===========================================================================
 //============================= Getting Started =============================
@@ -154,42 +154,66 @@
 #define MACHINE_UUID "ff97ab42-5ff3-4eff-8ce1-94f61dde807e"
 
 /**
- * Define the number of coordinated linear axes.
- * See https://github.com/DerAndere1/Marlin/wiki
- * Each linear axis gets its own stepper control and endstop:
+ * Stepper Drivers
  *
- *   Steppers: *_STEP_PIN, *_ENABLE_PIN, *_DIR_PIN, *_ENABLE_ON
- *   Endstops: *_STOP_PIN, USE_*MIN_PLUG, USE_*MAX_PLUG
- *       Axes: *_MIN_POS, *_MAX_POS, INVERT_*_DIR
- *    Planner: DEFAULT_AXIS_STEPS_PER_UNIT, DEFAULT_MAX_FEEDRATE
- *             DEFAULT_MAX_ACCELERATION, AXIS_RELATIVE_MODES,
- *             MICROSTEP_MODES, MANUAL_FEEDRATE
+ * These settings allow Marlin to tune stepper driver timing and enable advanced options for
+ * stepper drivers that support them. You may also override timing options in Configuration_adv.h.
  *
- * :[3, 4, 5, 6]
+ * Use TMC2208/TMC2208_STANDALONE for TMC2225 drivers and TMC2209/TMC2209_STANDALONE for TMC2226 drivers.
+ *
+ * Options: A4988, A5984, DRV8825, LV8729, L6470, L6474, POWERSTEP01,
+ *          TB6560, TB6600, TMC2100,
+ *          TMC2130, TMC2130_STANDALONE, TMC2160, TMC2160_STANDALONE,
+ *          TMC2208, TMC2208_STANDALONE, TMC2209, TMC2209_STANDALONE,
+ *          TMC26X,  TMC26X_STANDALONE,  TMC2660, TMC2660_STANDALONE,
+ *          TMC5130, TMC5130_STANDALONE, TMC5160, TMC5160_STANDALONE
+ * :['A4988', 'A5984', 'DRV8825', 'LV8729', 'L6470', 'L6474', 'POWERSTEP01', 'TB6560', 'TB6600', 'TMC2100', 'TMC2130', 'TMC2130_STANDALONE', 'TMC2160', 'TMC2160_STANDALONE', 'TMC2208', 'TMC2208_STANDALONE', 'TMC2209', 'TMC2209_STANDALONE', 'TMC26X', 'TMC26X_STANDALONE', 'TMC2660', 'TMC2660_STANDALONE', 'TMC5130', 'TMC5130_STANDALONE', 'TMC5160', 'TMC5160_STANDALONE']
  */
-//#define LINEAR_AXES 3
+#define X_DRIVER_TYPE TMC2209
+#define Y_DRIVER_TYPE TMC2209
+#define Z_DRIVER_TYPE TMC2209
+#define E0_DRIVER_TYPE TMC2209
 
 /**
- * Axis codes for additional axes:
- * This defines the axis code that is used in G-code commands to
- * reference a specific axis.
- * 'A' for rotational axis parallel to X
- * 'B' for rotational axis parallel to Y
- * 'C' for rotational axis parallel to Z
- * 'U' for secondary linear axis parallel to X
- * 'V' for secondary linear axis parallel to Y
- * 'W' for secondary linear axis parallel to Z
- * Regardless of the settings, firmware-internal axis IDs are
- * I (AXIS4), J (AXIS5), K (AXIS6).
+ * Additional Axis Settings
+ *
+ * Define AXISn_ROTATES for all axes that rotate or pivot.
+ * Rotational axis coordinates are expressed in degrees.
+ *
+ * AXISn_NAME defines the letter used to refer to the axis in (most) G-code commands.
+ * By convention the names and roles are typically:
+ *   'A' : Rotational axis parallel to X
+ *   'B' : Rotational axis parallel to Y
+ *   'C' : Rotational axis parallel to Z
+ *   'U' : Secondary linear axis parallel to X
+ *   'V' : Secondary linear axis parallel to Y
+ *   'W' : Secondary linear axis parallel to Z
+ *
+ * Regardless of these settings the axes are internally named I, J, K, U, V, W.
  */
-#if LINEAR_AXES >= 4
+#ifdef I_DRIVER_TYPE
   #define AXIS4_NAME 'A' // :['A', 'B', 'C', 'U', 'V', 'W']
+  #define AXIS4_ROTATES
 #endif
-#if LINEAR_AXES >= 5
-  #define AXIS5_NAME 'B' // :['A', 'B', 'C', 'U', 'V', 'W']
+#ifdef J_DRIVER_TYPE
+  #define AXIS5_NAME 'B' // :['B', 'C', 'U', 'V', 'W']
+  #define AXIS5_ROTATES
 #endif
-#if LINEAR_AXES >= 6
-  #define AXIS6_NAME 'C' // :['A', 'B', 'C', 'U', 'V', 'W']
+#ifdef K_DRIVER_TYPE
+  #define AXIS6_NAME 'C' // :['C', 'U', 'V', 'W']
+  #define AXIS6_ROTATES
+#endif
+#ifdef U_DRIVER_TYPE
+  #define AXIS7_NAME 'U' // :['U', 'V', 'W']
+  //#define AXIS7_ROTATES
+#endif
+#ifdef V_DRIVER_TYPE
+  #define AXIS8_NAME 'V' // :['V', 'W']
+  //#define AXIS8_ROTATES
+#endif
+#ifdef W_DRIVER_TYPE
+  #define AXIS9_NAME 'W' // :['W']
+  //#define AXIS9_ROTATES
 #endif
 
 // @section extruder
@@ -478,6 +502,7 @@
  *    61 : 100kΩ  Formbot/Vivedino 350°C Thermistor - beta 3950
  *    66 : 4.7MΩ  Dyze Design High Temperature Thermistor
  *    67 : 500kΩ  SliceEngineering 450°C Thermistor
+ *    68 : PT100 amplifier board from Dyze Design
  *    70 : 100kΩ  bq Hephestos 2
  *    75 : 100kΩ  Generic Silicon Heat Pad with NTC100K MGB18-104F39050L32
  *  2000 : 100kΩ  Ultimachine Rambo TDK NTCG104LH104KT1 NTC100K motherboard Thermistor
@@ -607,17 +632,17 @@
 //===========================================================================
 //============================= PID Settings ================================
 //===========================================================================
-// PID Tuning Guide here: http://reprap.org/wiki/PID_Tuning
 
-// Comment the following line to disable PID and enable bang-bang.
-#define PIDTEMP
+// Enable PIDTEMP for PID control or MPCTEMP for Predictive Model.
+// temperature control. Disable both for bang-bang heating.
+#define PIDTEMP          // See the PID Tuning Guide at https://reprap.org/wiki/PID_Tuning
+//#define MPCTEMP        // ** EXPERIMENTAL **
+
 #define BANG_MAX 255     // Limits current to nozzle while in bang-bang mode; 255=full current
 #define PID_MAX BANG_MAX // Limits current to nozzle while PID is active (see PID_FUNCTIONAL_RANGE below); 255=full current
 #define PID_K1 0.95      // Smoothing factor within any PID loop
 
 #if ENABLED(PIDTEMP)
-  #define PID_EDIT_MENU         // Add PID editing to the "Advanced Settings" menu. (~700 bytes of PROGMEM)
-  #define PID_AUTOTUNE_MENU     // Add PID auto-tuning to the "Advanced Settings" menu. (~250 bytes of PROGMEM)
   //#define PID_PARAMS_PER_HOTEND // Uses separate PID parameters for each extruder (useful for mismatched extruders)
                                   // Set/get with gcode: M301 E[extruder number, 0-2]
 
@@ -635,7 +660,49 @@
 #define DEFAULT_Ki 3.78
 #define DEFAULT_Kd 74.58
   #endif
-#endif // PIDTEMP
+#endif
+
+/**
+ * Model Predictive Control for hotend
+ *
+ * Use a physical model of the hotend to control temperature. When configured correctly
+ * this gives better responsiveness and stability than PID and it also removes the need
+ * for PID_EXTRUSION_SCALING and PID_FAN_SCALING. Use M306 to autotune the model.
+ */
+#if ENABLED(MPCTEMP)
+  //#define MPC_EDIT_MENU                             // Add MPC editing to the "Advanced Settings" menu. (~1300 bytes of flash)
+  //#define MPC_AUTOTUNE_MENU                         // Add MPC auto-tuning to the "Advanced Settings" menu. (~350 bytes of flash)
+
+  #define MPC_MAX BANG_MAX                            // (0..255) Current to nozzle while MPC is active.
+  #define MPC_HEATER_POWER { 40.0f }                  // (W) Heat cartridge powers.
+
+  #define MPC_INCLUDE_FAN                             // Model the fan speed?
+
+  // Measured physical constants from M306
+  #define MPC_BLOCK_HEAT_CAPACITY { 16.7f }           // (J/K) Heat block heat capacities.
+  #define MPC_SENSOR_RESPONSIVENESS { 0.22f }         // (K/s per ∆K) Rate of change of sensor temperature from heat block.
+  #define MPC_AMBIENT_XFER_COEFF { 0.068f }           // (W/K) Heat transfer coefficients from heat block to room air with fan off.
+  #if ENABLED(MPC_INCLUDE_FAN)
+    #define MPC_AMBIENT_XFER_COEFF_FAN255 { 0.097f }  // (W/K) Heat transfer coefficients from heat block to room air with fan on full.
+  #endif
+
+  // For one fan and multiple hotends MPC needs to know how to apply the fan cooling effect.
+  #if ENABLED(MPC_INCLUDE_FAN)
+    //#define MPC_FAN_0_ALL_HOTENDS
+    //#define MPC_FAN_0_ACTIVE_HOTEND
+  #endif
+
+  #define FILAMENT_HEAT_CAPACITY_PERMM 5.6e-3f        // 0.0056 J/K/mm for 1.75mm PLA (0.0149 J/K/mm for 2.85mm PLA).
+  //#define FILAMENT_HEAT_CAPACITY_PERMM 3.6e-3f      // 0.0036 J/K/mm for 1.75mm PETG (0.0094 J/K/mm for 2.85mm PETG).
+
+  // Advanced options
+  #define MPC_SMOOTHING_FACTOR 0.5f                   // (0.0...1.0) Noisy temperature sensors may need a lower value for stabilization.
+  #define MPC_MIN_AMBIENT_CHANGE 1.0f                 // (K/s) Modeled ambient temperature rate of change, when correcting model inaccuracies.
+  #define MPC_STEADYSTATE 0.5f                        // (K/s) Temperature change rate for steady state logic to be enforced.
+
+  #define MPC_TUNING_POS { X_CENTER, Y_CENTER, 1.0f } // (mm) M306 Autotuning position, ideally bed center just above the surface.
+  #define MPC_TUNING_END_Z 10.0f                      // (mm) M306 Autotuning final Z position.
+#endif
 
 //===========================================================================
 //====================== PID > Bed Temperature Control ======================
@@ -734,6 +801,9 @@
   //#define SLOW_PWM_HEATERS      // PWM with very low frequency (roughly 0.125Hz=8s) and minimum state time of approximately 1s useful for heaters driven by a relay
   #define PID_FUNCTIONAL_RANGE 10 // If the temperature difference between the target temperature and the actual temperature
                                   // is more than PID_FUNCTIONAL_RANGE then the PID will be shut off and the heater will be set to min/max.
+
+  //#define PID_EDIT_MENU         // Add PID editing to the "Advanced Settings" menu. (~700 bytes of flash)
+  //#define PID_AUTOTUNE_MENU     // Add PID auto-tuning to the "Advanced Settings" menu. (~250 bytes of flash)
 #endif
 
 // @section extruder
@@ -819,12 +889,18 @@
 //#define USE_IMIN_PLUG
 //#define USE_JMIN_PLUG
 //#define USE_KMIN_PLUG
+//#define USE_UMIN_PLUG
+//#define USE_VMIN_PLUG
+//#define USE_WMIN_PLUG
 //#define USE_XMAX_PLUG
 //#define USE_YMAX_PLUG
 //#define USE_ZMAX_PLUG
 //#define USE_IMAX_PLUG
 //#define USE_JMAX_PLUG
 //#define USE_KMAX_PLUG
+//#define USE_UMAX_PLUG
+//#define USE_VMAX_PLUG
+//#define USE_WMAX_PLUG
 
 // Enable pullup for all endstops to prevent a floating state
 #define ENDSTOPPULLUPS
@@ -836,12 +912,18 @@
   //#define ENDSTOPPULLUP_IMIN
   //#define ENDSTOPPULLUP_JMIN
   //#define ENDSTOPPULLUP_KMIN
+  //#define ENDSTOPPULLUP_UMIN
+  //#define ENDSTOPPULLUP_VMIN
+  //#define ENDSTOPPULLUP_WMIN
   //#define ENDSTOPPULLUP_XMAX
   //#define ENDSTOPPULLUP_YMAX
   //#define ENDSTOPPULLUP_ZMAX
   //#define ENDSTOPPULLUP_IMAX
   //#define ENDSTOPPULLUP_JMAX
   //#define ENDSTOPPULLUP_KMAX
+  //#define ENDSTOPPULLUP_UMAX
+  //#define ENDSTOPPULLUP_VMAX
+  //#define ENDSTOPPULLUP_WMAX
   //#define ENDSTOPPULLUP_ZMIN_PROBE
 #endif
 
@@ -855,12 +937,18 @@
   //#define ENDSTOPPULLDOWN_IMIN
   //#define ENDSTOPPULLDOWN_JMIN
   //#define ENDSTOPPULLDOWN_KMIN
+  //#define ENDSTOPPULLDOWN_UMIN
+  //#define ENDSTOPPULLDOWN_VMIN
+  //#define ENDSTOPPULLDOWN_WMIN
   //#define ENDSTOPPULLDOWN_XMAX
   //#define ENDSTOPPULLDOWN_YMAX
   //#define ENDSTOPPULLDOWN_ZMAX
   //#define ENDSTOPPULLDOWN_IMAX
   //#define ENDSTOPPULLDOWN_JMAX
   //#define ENDSTOPPULLDOWN_KMAX
+  //#define ENDSTOPPULLDOWN_UMAX
+  //#define ENDSTOPPULLDOWN_VMAX
+  //#define ENDSTOPPULLDOWN_WMAX
   //#define ENDSTOPPULLDOWN_ZMIN_PROBE
 #endif
 
@@ -871,48 +959,19 @@
 #define I_MIN_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
 #define J_MIN_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
 #define K_MIN_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
+#define U_MIN_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
+#define V_MIN_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
+#define W_MIN_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
 #define X_MAX_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
 #define Y_MAX_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
 #define Z_MAX_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
 #define I_MAX_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
 #define J_MAX_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
 #define K_MAX_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
+#define U_MAX_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
+#define V_MAX_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
+#define W_MAX_ENDSTOP_INVERTING false // Set to true to invert the logic of the endstop.
 #define Z_MIN_PROBE_ENDSTOP_INVERTING false // Set to true to invert the logic of the probe.
-
-/**
- * Stepper Drivers
- *
- * These settings allow Marlin to tune stepper driver timing and enable advanced options for
- * stepper drivers that support them. You may also override timing options in Configuration_adv.h.
- *
- * A4988 is assumed for unspecified drivers.
- *
- * Use TMC2208/TMC2208_STANDALONE for TMC2225 drivers and TMC2209/TMC2209_STANDALONE for TMC2226 drivers.
- *
- * Options: A4988, A5984, DRV8825, LV8729, L6470, L6474, POWERSTEP01,
- *          TB6560, TB6600, TMC2100,
- *          TMC2130, TMC2130_STANDALONE, TMC2160, TMC2160_STANDALONE,
- *          TMC2208, TMC2208_STANDALONE, TMC2209, TMC2209_STANDALONE,
- *          TMC26X,  TMC26X_STANDALONE,  TMC2660, TMC2660_STANDALONE,
- *          TMC5130, TMC5130_STANDALONE, TMC5160, TMC5160_STANDALONE
- * :['A4988', 'A5984', 'DRV8825', 'LV8729', 'L6470', 'L6474', 'POWERSTEP01', 'TB6560', 'TB6600', 'TMC2100', 'TMC2130', 'TMC2130_STANDALONE', 'TMC2160', 'TMC2160_STANDALONE', 'TMC2208', 'TMC2208_STANDALONE', 'TMC2209', 'TMC2209_STANDALONE', 'TMC26X', 'TMC26X_STANDALONE', 'TMC2660', 'TMC2660_STANDALONE', 'TMC5130', 'TMC5130_STANDALONE', 'TMC5160', 'TMC5160_STANDALONE']
- */
-#define X_DRIVER_TYPE TMC2209
-#define Y_DRIVER_TYPE TMC2209
-#define Z_DRIVER_TYPE TMC2209
-//#define X2_DRIVER_TYPE A4988
-//#define Y2_DRIVER_TYPE A4988
-//#define Z2_DRIVER_TYPE A4988
-//#define Z3_DRIVER_TYPE A4988
-//#define Z4_DRIVER_TYPE A4988
-#define E0_DRIVER_TYPE TMC2209
-//#define E1_DRIVER_TYPE A4988
-//#define E2_DRIVER_TYPE A4988
-//#define E3_DRIVER_TYPE A4988
-//#define E4_DRIVER_TYPE A4988
-//#define E5_DRIVER_TYPE A4988
-//#define E6_DRIVER_TYPE A4988
-//#define E7_DRIVER_TYPE A4988
 
 // Enable this feature if all enabled endstop pins are interrupt-capable.
 // This will remove the need to poll the interrupt pins, saving many CPU cycles.
@@ -956,9 +1015,9 @@
 //#define DISTINCT_E_FACTORS
 
 /**
- * Default Axis Steps Per Unit (steps/mm)
+ * Default Axis Steps Per Unit (linear=steps/mm, rotational=steps/°)
  * Override with M92
- *                                      X, Y, Z [, I [, J [, K]]], E0 [, E1[, E2...]]
+ *                                      X, Y, Z [, I [, J [, K...]]], E0 [, E1[, E2...]]
  */
 #define DEFAULT_AXIS_STEPS_PER_UNIT \
   {                                 \
@@ -966,9 +1025,9 @@
   }
 
 /**
- * Default Max Feed Rate (mm/s)
+ * Default Max Feed Rate (linear=mm/s, rotational=°/s)
  * Override with M203
- *                                      X, Y, Z [, I [, J [, K]]], E0 [, E1[, E2...]]
+ *                                      X, Y, Z [, I [, J [, K...]]], E0 [, E1[, E2...]]
  */
 #define DEFAULT_MAX_FEEDRATE \
   {                          \
@@ -984,10 +1043,10 @@
 #endif
 
 /**
- * Default Max Acceleration (change/s) change = mm/s
+ * Default Max Acceleration (speed change with time) (linear=mm/(s^2), rotational=°/(s^2))
  * (Maximum start speed for accelerated moves)
  * Override with M201
- *                                      X, Y, Z [, I [, J [, K]]], E0 [, E1[, E2...]]
+ *                                      X, Y, Z [, I [, J [, K...]]], E0 [, E1[, E2...]]
  */
 #define DEFAULT_MAX_ACCELERATION \
   {                              \
@@ -1003,7 +1062,7 @@
 #endif
 
 /**
- * Default Acceleration (change/s) change = mm/s
+ * Default Acceleration (speed change with time) (linear=mm/(s^2), rotational=°/(s^2))
  * Override with M204
  *
  *   M204 P    Acceleration
@@ -1016,7 +1075,7 @@
 
 /**
  * Default Jerk limits (mm/s)
- * Override with M205 X Y Z E
+ * Override with M205 X Y Z . . . E
  *
  * "Jerk" specifies the minimum speed change that requires acceleration.
  * When changing speed and direction, if the difference is less than the
@@ -1030,6 +1089,9 @@
   //#define DEFAULT_IJERK  0.3
   //#define DEFAULT_JJERK  0.3
   //#define DEFAULT_KJERK  0.3
+  //#define DEFAULT_UJERK  0.3
+  //#define DEFAULT_VJERK  0.3
+  //#define DEFAULT_WJERK  0.3
 
   //#define TRAVEL_EXTRA_XYJERK 0.0     // Additional jerk allowance for all travel moves
 
@@ -1372,6 +1434,9 @@
 //#define I_ENABLE_ON 0
 //#define J_ENABLE_ON 0
 //#define K_ENABLE_ON 0
+//#define U_ENABLE_ON 0
+//#define V_ENABLE_ON 0
+//#define W_ENABLE_ON 0
 
 // Disable axis steppers immediately when they're not being stepped.
 // WARNING: When motors turn off there is a chance of losing position accuracy!
@@ -1381,6 +1446,9 @@
 //#define DISABLE_I false
 //#define DISABLE_J false
 //#define DISABLE_K false
+//#define DISABLE_U false
+//#define DISABLE_V false
+//#define DISABLE_W false
 
 // Turn off the display blinking that warns about possible accuracy reduction
 //#define DISABLE_REDUCED_ACCURACY_WARNING
@@ -1399,6 +1467,9 @@
 //#define INVERT_I_DIR false
 //#define INVERT_J_DIR false
 //#define INVERT_K_DIR false
+//#define INVERT_U_DIR false
+//#define INVERT_V_DIR false
+//#define INVERT_W_DIR false
 
 // @section extruder
 
@@ -1437,6 +1508,9 @@
 //#define I_HOME_DIR -1
 //#define J_HOME_DIR -1
 //#define K_HOME_DIR -1
+//#define U_HOME_DIR -1
+//#define V_HOME_DIR -1
+//#define W_HOME_DIR -1
 
 // @section machine
 
@@ -1444,7 +1518,7 @@
 #define X_BED_SIZE 308
 #define Y_BED_SIZE 308
 
-// Travel limits (mm) after homing, corresponding to endstop positions.
+// Travel limits (linear=mm, rotational=°) after homing, corresponding to endstop positions.
 #define X_MIN_POS 0
 #define Y_MIN_POS 0
 #define Z_MIN_POS 0
@@ -1472,6 +1546,9 @@
   #define MIN_SOFTWARE_ENDSTOP_I
   #define MIN_SOFTWARE_ENDSTOP_J
   #define MIN_SOFTWARE_ENDSTOP_K
+  #define MIN_SOFTWARE_ENDSTOP_U
+  #define MIN_SOFTWARE_ENDSTOP_V
+  #define MIN_SOFTWARE_ENDSTOP_W
 #endif
 
 // Max software endstops constrain movement within maximum coordinate bounds
@@ -1483,6 +1560,9 @@
   #define MAX_SOFTWARE_ENDSTOP_I
   #define MAX_SOFTWARE_ENDSTOP_J
   #define MAX_SOFTWARE_ENDSTOP_K
+  #define MAX_SOFTWARE_ENDSTOP_U
+  #define MAX_SOFTWARE_ENDSTOP_V
+  #define MAX_SOFTWARE_ENDSTOP_W
 #endif
 
 #if EITHER(MIN_SOFTWARE_ENDSTOPS, MAX_SOFTWARE_ENDSTOPS)
@@ -1803,6 +1883,9 @@
 //#define MANUAL_I_HOME_POS 0
 //#define MANUAL_J_HOME_POS 0
 //#define MANUAL_K_HOME_POS 0
+//#define MANUAL_U_HOME_POS 0
+//#define MANUAL_V_HOME_POS 0
+//#define MANUAL_W_HOME_POS 0
 
 // Use "Z Safe Homing" to avoid homing with a Z probe outside the bed area.
 //
@@ -1901,10 +1984,10 @@
  *   M501 - Read settings from EEPROM. (i.e., Throw away unsaved changes)
  *   M502 - Revert settings to "factory" defaults. (Follow with M500 to init the EEPROM.)
  */
-#define EEPROM_SETTINGS // Persistent storage with M500 and M501
-//#define DISABLE_M503        // Saves ~2700 bytes of PROGMEM. Disable for release!
-#define EEPROM_CHITCHAT    // Give feedback on EEPROM commands. Disable to save PROGMEM.
-#define EEPROM_BOOT_SILENT // Keep M503 quiet and only give errors during first load
+#define EEPROM_SETTINGS     // Persistent storage with M500 and M501
+//#define DISABLE_M503        // Saves ~2700 bytes of flash. Disable for release!
+#define EEPROM_CHITCHAT       // Give feedback on EEPROM commands. Disable to save PROGMEM.
+#define EEPROM_BOOT_SILENT    // Keep M503 quiet and only give errors during first load
 #if ENABLED(EEPROM_SETTINGS)
   //#define EEPROM_AUTO_INIT  // Init EEPROM automatically on any errors.
   //#define EEPROM_INIT_NOW   // Init EEPROM on first boot after a new build.
@@ -1933,7 +2016,7 @@
 // @section temperature
 
 //
-// Preheat Constants - Up to 5 are supported without changes
+// Preheat Constants - Up to 6 are supported without changes
 //
 #define PREHEAT_1_LABEL       "PLA"
 #define PREHEAT_1_TEMP_HOTEND 205
@@ -1961,16 +2044,12 @@
 #define NOZZLE_PARK_FEATURE
 
 #if ENABLED(NOZZLE_PARK_FEATURE)
-// Specify a park position as { X, Y, Z_raise }
-#define NOZZLE_PARK_POINT                  \
-  {                                        \
-    (X_MIN_POS + 10), (Y_MAX_POS - 10), 20 \
-  }
-//#define NOZZLE_PARK_X_ONLY          // X move only is required to park
-//#define NOZZLE_PARK_Y_ONLY          // Y move only is required to park
-#define NOZZLE_PARK_Z_RAISE_MIN 2   // (mm) Always raise Z by at least this distance
-#define NOZZLE_PARK_XY_FEEDRATE 100 // (mm/s) X and Y axes feedrate (also used for delta Z axis)
-#define NOZZLE_PARK_Z_FEEDRATE 5    // (mm/s) Z axis feedrate (not used for delta printers)
+  // Specify a park position as { X, Y, Z_raise }
+  #define NOZZLE_PARK_POINT { (X_MIN_POS + 10), (Y_MAX_POS - 10), 20 }
+  #define NOZZLE_PARK_MOVE          0   // Park motion: 0 = XY Move, 1 = X Only, 2 = Y Only, 3 = X before Y, 4 = Y before X
+  #define NOZZLE_PARK_Z_RAISE_MIN   2   // (mm) Always raise Z by at least this distance
+  #define NOZZLE_PARK_XY_FEEDRATE 100   // (mm/s) X and Y axes feedrate (also used for delta Z axis)
+  #define NOZZLE_PARK_Z_FEEDRATE    5   // (mm/s) Z axis feedrate (not used for delta printers)
 #endif
 
 /**
@@ -2647,38 +2726,38 @@
 //========================== Extensible UI Displays ===========================
 //=============================================================================
 
-//
-// DGUS Touch Display with DWIN OS. (Choose one.)
-// ORIGIN : https://www.aliexpress.com/item/32993409517.html
-// FYSETC : https://www.aliexpress.com/item/32961471929.html
-// MKS    : https://www.aliexpress.com/item/1005002008179262.html
-//
-// Flash display with DGUS Displays for Marlin:
-//  - Format the SD card to FAT32 with an allocation size of 4kb.
-//  - Download files as specified for your type of display.
-//  - Plug the microSD card into the back of the display.
-//  - Boot the display and wait for the update to complete.
-//
-// ORIGIN (Marlin DWIN_SET)
-//  - Download https://github.com/coldtobi/Marlin_DGUS_Resources
-//  - Copy the downloaded DWIN_SET folder to the SD card.
-//
-// FYSETC (Supplier default)
-//  - Download https://github.com/FYSETC/FYSTLCD-2.0
-//  - Copy the downloaded SCREEN folder to the SD card.
-//
-// HIPRECY (Supplier default)
-//  - Download https://github.com/HiPrecy/Touch-Lcd-LEO
-//  - Copy the downloaded DWIN_SET folder to the SD card.
-//
-// MKS (MKS-H43) (Supplier default)
-//  - Download https://github.com/makerbase-mks/MKS-H43
-//  - Copy the downloaded DWIN_SET folder to the SD card.
-//
-// RELOADED (T5UID1)
-//  - Download https://github.com/Desuuuu/DGUS-reloaded/releases
-//  - Copy the downloaded DWIN_SET folder to the SD card.
-//
+/**
+ * DGUS Touch Display with DWIN OS. (Choose one.)
+ * ORIGIN : https://www.aliexpress.com/item/32993409517.html
+ * FYSETC : https://www.aliexpress.com/item/32961471929.html
+ * MKS    : https://www.aliexpress.com/item/1005002008179262.html
+ *
+ * Flash display with DGUS Displays for Marlin:
+ *  - Format the SD card to FAT32 with an allocation size of 4kb.
+ *  - Download files as specified for your type of display.
+ *  - Plug the microSD card into the back of the display.
+ *  - Boot the display and wait for the update to complete.
+ *
+ * ORIGIN (Marlin DWIN_SET)
+ *  - Download https://github.com/coldtobi/Marlin_DGUS_Resources
+ *  - Copy the downloaded DWIN_SET folder to the SD card.
+ *
+ * FYSETC (Supplier default)
+ *  - Download https://github.com/FYSETC/FYSTLCD-2.0
+ *  - Copy the downloaded SCREEN folder to the SD card.
+ *
+ * HIPRECY (Supplier default)
+ *  - Download https://github.com/HiPrecy/Touch-Lcd-LEO
+ *  - Copy the downloaded DWIN_SET folder to the SD card.
+ *
+ * MKS (MKS-H43) (Supplier default)
+ *  - Download https://github.com/makerbase-mks/MKS-H43
+ *  - Copy the downloaded DWIN_SET folder to the SD card.
+ *
+ * RELOADED (T5UID1)
+ *  - Download https://github.com/Desuuuu/DGUS-reloaded/releases
+ *  - Copy the downloaded DWIN_SET folder to the SD card.
+ */
 //#define DGUS_LCD_UI_ORIGIN
 //#define DGUS_LCD_UI_FYSETC
 //#define DGUS_LCD_UI_HIPRECY
@@ -2692,9 +2771,6 @@
 // Touch-screen LCD for Malyan M200/M300 printers
 //
 //#define MALYAN_LCD
-#if ENABLED(MALYAN_LCD)
-#define LCD_SERIAL_PORT 1 // Default is 1 for Malyan M200
-#endif
 
 //
 // Touch UI for FTDI EVE (FT800/FT810) displays
@@ -2708,17 +2784,13 @@
 //#define ANYCUBIC_LCD_I3MEGA
 //#define ANYCUBIC_LCD_CHIRON
 #if EITHER(ANYCUBIC_LCD_I3MEGA, ANYCUBIC_LCD_CHIRON)
-#define LCD_SERIAL_PORT 3 // Default is 3 for Anycubic
-//#define ANYCUBIC_LCD_DEBUG
+  //#define ANYCUBIC_LCD_DEBUG
 #endif
 
 //
 // 320x240 Nextion 2.8" serial TFT Resistive Touch Screen NX3224T028
 //
 //#define NEXTION_TFT
-#if ENABLED(NEXTION_TFT)
-  #define LCD_SERIAL_PORT 1  // Default is 1 for Nextion
-#endif
 
 //
 // Third-party or vendor-customized controller interfaces.
@@ -2875,7 +2947,7 @@
 // Ender-3 v2 OEM display. A DWIN display with Rotary Encoder.
 //
 //#define DWIN_CREALITY_LCD           // Creality UI
-//#define DWIN_CREALITY_LCD_ENHANCED  // Enhanced UI
+//#define DWIN_LCD_PROUI              // Pro UI by MRiscoC
 //#define DWIN_CREALITY_LCD_JYERSUI   // Jyers UI by Jacob Myers
 //#define DWIN_MARLINUI_PORTRAIT      // MarlinUI (portrait orientation)
 //#define DWIN_MARLINUI_LANDSCAPE     // MarlinUI (landscape orientation)
@@ -2888,7 +2960,7 @@
 #define BUTTON_DELAY_EDIT 50  // (ms) Button repeat delay for edit screens
 #define BUTTON_DELAY_MENU 250 // (ms) Button repeat delay for menus
 
-  //#define TOUCH_IDLE_SLEEP 300 // (secs) Turn off the TFT backlight if set (5mn)
+  //#define TOUCH_IDLE_SLEEP 300 // (s) Turn off the TFT backlight if set (5mn)
 
   #define TOUCH_SCREEN_CALIBRATION
 
@@ -2998,30 +3070,31 @@
 // Support for Adafruit Neopixel LED driver
 //#define NEOPIXEL_LED
 #if ENABLED(NEOPIXEL_LED)
-  #define NEOPIXEL_TYPE   NEO_GRBW // NEO_GRBW / NEO_GRB - four/three channel driver type (defined in Adafruit_NeoPixel.h)
-  //#define NEOPIXEL_PIN     4     // LED driving pin
-  //#define NEOPIXEL2_TYPE NEOPIXEL_TYPE
-  //#define NEOPIXEL2_PIN    5
-  #define NEOPIXEL_PIXELS 30       // Number of LEDs in the strip. (Longest strip when NEOPIXEL2_SEPARATE is disabled.)
-  #define NEOPIXEL_IS_SEQUENTIAL   // Sequential display for temperature change - LED by LED. Disable to change all LEDs at once.
-  #define NEOPIXEL_BRIGHTNESS 127  // Initial brightness (0-255)
-  //#define NEOPIXEL_STARTUP_TEST  // Cycle through colors at startup
+  #define NEOPIXEL_TYPE          NEO_GRBW // NEO_GRBW, NEO_RGBW, NEO_GRB, NEO_RBG, etc.
+                                          // See https://github.com/adafruit/Adafruit_NeoPixel/blob/master/Adafruit_NeoPixel.h
+  //#define NEOPIXEL_PIN                4 // LED driving pin
+  //#define NEOPIXEL2_TYPE  NEOPIXEL_TYPE
+  //#define NEOPIXEL2_PIN               5
+  #define NEOPIXEL_PIXELS              30 // Number of LEDs in the strip. (Longest strip when NEOPIXEL2_SEPARATE is disabled.)
+  #define NEOPIXEL_IS_SEQUENTIAL          // Sequential display for temperature change - LED by LED. Disable to change all LEDs at once.
+  #define NEOPIXEL_BRIGHTNESS         127 // Initial brightness (0-255)
+  //#define NEOPIXEL_STARTUP_TEST         // Cycle through colors at startup
 
   // Support for second Adafruit NeoPixel LED driver controlled with M150 S1 ...
   //#define NEOPIXEL2_SEPARATE
   #if ENABLED(NEOPIXEL2_SEPARATE)
-    #define NEOPIXEL2_PIXELS      15  // Number of LEDs in the second strip
-    #define NEOPIXEL2_BRIGHTNESS 127  // Initial brightness (0-255)
-    #define NEOPIXEL2_STARTUP_TEST    // Cycle through colors at startup
+    #define NEOPIXEL2_PIXELS           15 // Number of LEDs in the second strip
+    #define NEOPIXEL2_BRIGHTNESS      127 // Initial brightness (0-255)
+    #define NEOPIXEL2_STARTUP_TEST        // Cycle through colors at startup
   #else
-    //#define NEOPIXEL2_INSERIES      // Default behavior is NeoPixel 2 in parallel
+    //#define NEOPIXEL2_INSERIES          // Default behavior is NeoPixel 2 in parallel
   #endif
 
   // Use some of the NeoPixel LEDs for static (background) lighting
-  //#define NEOPIXEL_BKGD_INDEX_FIRST  0              // Index of the first background LED
-  //#define NEOPIXEL_BKGD_INDEX_LAST   5              // Index of the last background LED
+  //#define NEOPIXEL_BKGD_INDEX_FIRST   0 // Index of the first background LED
+  //#define NEOPIXEL_BKGD_INDEX_LAST    5 // Index of the last background LED
   //#define NEOPIXEL_BKGD_COLOR { 255, 255, 255, 0 }  // R, G, B, W
-  //#define NEOPIXEL_BKGD_ALWAYS_ON                   // Keep the backlight on when other NeoPixels are off
+  //#define NEOPIXEL_BKGD_ALWAYS_ON       // Keep the backlight on when other NeoPixels are off
 #endif
 
 /**
