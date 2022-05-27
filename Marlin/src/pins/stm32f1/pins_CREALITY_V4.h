@@ -28,7 +28,7 @@
 #include "env_validate.h"
 
 #if HAS_MULTI_HOTEND || E_STEPPERS > 1
-  #error "Creality V4 only supports one hotend / E-stepper. Comment out this line to continue."
+  #error "Creality v4 only supports 1 hotend / E stepper."
 #endif
 
 #ifndef BOARD_INFO_NAME
@@ -39,6 +39,13 @@
 #endif
 
 #define BOARD_NO_NATIVE_USB
+
+//
+// Release PB4 (Y_ENABLE_PIN) from JTAG NRST role
+//
+#ifndef DISABLE_DEBUG
+  #define DISABLE_DEBUG
+#endif
 
 //
 // EEPROM
@@ -121,11 +128,6 @@
   #define E0_DIR_PIN                        PB3
 #endif
 #define E0_ENABLE_PIN               X_ENABLE_PIN
-
-//
-// Release PB4 (Y_ENABLE_PIN) from JTAG NRST role
-//
-#define DISABLE_DEBUG
 
 //
 // Temperature Sensors
