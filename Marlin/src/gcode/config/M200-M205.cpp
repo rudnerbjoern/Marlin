@@ -108,12 +108,21 @@
 #endif // !NO_VOLUMETRICS
 
 /**
- * M201: Set max acceleration in units/s^2 for print moves (M201 X1000 Y1000)
+ * M201: Set max acceleration in units/s^2 for print moves.
  *
- *       With multiple extruders use T to specify which one.
+ *  X<accel> : Max Acceleration for X
+ *  Y<accel> : Max Acceleration for Y
+ *  Z<accel> : Max Acceleration for Z
+ *       ... : etc
+ *  E<accel> : Max Acceleration for Extruder
+ *  T<index> : Extruder index to set
+ *
+ * With XY_FREQUENCY_LIMIT:
+ *  F<Hz>      : Frequency limit for XY...IJKUVW
+ *  S<percent> : Speed factor percentage.
  */
 void GcodeSuite::M201() {
-  if (!parser.seen("T" LOGICAL_AXES_STRING))
+  if (!parser.seen("T" STR_AXES_LOGICAL TERN_(XY_FREQUENCY_LIMIT, "FS")))
     return M201_report();
 
   const int8_t target_extruder = get_target_extruder_from_command();
@@ -121,13 +130,13 @@ void GcodeSuite::M201() {
 
   #ifdef XY_FREQUENCY_LIMIT
     if (parser.seenval('F')) planner.set_frequency_limit(parser.value_byte());
-    if (parser.seenval('G')) planner.xy_freq_min_speed_factor = constrain(parser.value_float(), 1, 100) / 100;
+    if (parser.seenval('S')) planner.xy_freq_min_speed_factor = constrain(parser.value_float(), 1, 100) / 100;
   #endif
 
   LOOP_LOGICAL_AXES(i) {
     if (parser.seenval(AXIS_CHAR(i))) {
-      const uint8_t a = TERN(HAS_EXTRUDERS, (i == E_AXIS ? uint8_t(E_AXIS_N(target_extruder)) : i), i);
-      planner.set_max_acceleration(a, parser.value_axis_units((AxisEnum)a));
+      const AxisEnum a = TERN(HAS_EXTRUDERS, (i == E_AXIS ? E_AXIS_N(target_extruder) : (AxisEnum)i), (AxisEnum)i);
+      planner.set_max_acceleration(a, parser.value_axis_units(a));
     }
   }
 }
@@ -167,7 +176,7 @@ void GcodeSuite::M201_report(const bool forReplay/*=true*/) {
  *       With multiple extruders use T to specify which one.
  */
 void GcodeSuite::M203() {
-  if (!parser.seen("T" LOGICAL_AXES_STRING))
+  if (!parser.seen("T" STR_AXES_LOGICAL))
     return M203_report();
 
   const int8_t target_extruder = get_target_extruder_from_command();
@@ -175,8 +184,8 @@ void GcodeSuite::M203() {
 
   LOOP_LOGICAL_AXES(i)
     if (parser.seenval(AXIS_CHAR(i))) {
-      const uint8_t a = TERN(HAS_EXTRUDERS, (i == E_AXIS ? uint8_t(E_AXIS_N(target_extruder)) : i), i);
-      planner.set_max_feedrate(a, parser.value_axis_units((AxisEnum)a));
+      const AxisEnum a = TERN(HAS_EXTRUDERS, (i == E_AXIS ? E_AXIS_N(target_extruder) : (AxisEnum)i), (AxisEnum)i);
+      planner.set_max_feedrate(a, parser.value_axis_units(a));
     }
 }
 
@@ -200,7 +209,7 @@ void GcodeSuite::M203_report(const bool forReplay/*=true*/) {
   );
   #if ENABLED(DISTINCT_E_FACTORS)
     LOOP_L_N(i, E_STEPPERS) {
-      SERIAL_ECHO_START();
+      if (!forReplay) SERIAL_ECHO_START();
       SERIAL_ECHOLNPGM_P(
           PSTR("  M203 T"), i
         , SP_E_STR, VOLUMETRIC_UNIT(planner.settings.max_feedrate_mm_s[E_AXIS_N(i)])

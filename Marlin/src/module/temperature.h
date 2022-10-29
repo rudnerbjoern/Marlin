@@ -96,13 +96,14 @@ hotend_pid_t;
 
 #if ENABLED(MPCTEMP)
   typedef struct {
-    float heater_power;             // M306 P
-    float block_heat_capacity;      // M306 C
-    float sensor_responsiveness;    // M306 R
-    float ambient_xfer_coeff_fan0;  // M306 A
+    float heater_power;                 // M306 P
+    float block_heat_capacity;          // M306 C
+    float sensor_responsiveness;        // M306 R
+    float ambient_xfer_coeff_fan0;      // M306 A
     #if ENABLED(MPC_INCLUDE_FAN)
-      float fan255_adjustment;      // M306 F
+      float fan255_adjustment;          // M306 F
     #endif
+    float filament_heat_capacity_permm; // M306 H
   } MPC_t;
 #endif
 
@@ -429,10 +430,18 @@ class Temperature {
       static uint8_t soft_pwm_controller_speed;
     #endif
 
+    #if BOTH(HAS_MARLINUI_MENU, PREVENT_COLD_EXTRUSION) && E_MANUAL > 0
+      static bool allow_cold_extrude_override;
+      static void set_menu_cold_override(const bool allow) { allow_cold_extrude_override = allow; }
+    #else
+      static constexpr bool allow_cold_extrude_override = false;
+      static void set_menu_cold_override(const bool) {}
+    #endif
+
     #if ENABLED(PREVENT_COLD_EXTRUSION)
       static bool allow_cold_extrude;
       static celsius_t extrude_min_temp;
-      static bool tooCold(const celsius_t temp) { return allow_cold_extrude ? false : temp < extrude_min_temp - (TEMP_WINDOW); }
+      static bool tooCold(const celsius_t temp) { return !allow_cold_extrude && !allow_cold_extrude_override && temp < extrude_min_temp - (TEMP_WINDOW); }
       static bool tooColdToExtrude(const uint8_t E_NAME)       { return tooCold(wholeDegHotend(HOTEND_INDEX)); }
       static bool targetTooColdToExtrude(const uint8_t E_NAME) { return tooCold(degTargetHotend(HOTEND_INDEX)); }
     #else
@@ -708,7 +717,7 @@ class Temperature {
     /**
      * Call periodically to manage heaters
      */
-    static void manage_heater() _O2; // Added _O2 to work around a compiler error
+    static void manage_heater() __O2; // __O2 added to work around a compiler error
 
     /**
      * Preheating hotends
@@ -986,7 +995,7 @@ class Temperature {
     #endif // HEATER_IDLE_HANDLER
 
     #if HAS_TEMP_SENSOR
-      static void print_heater_states(const uint8_t target_extruder
+      static void print_heater_states(const int8_t target_extruder
         OPTARG(HAS_TEMP_REDUNDANT, const bool include_r=false)
       );
       #if ENABLED(AUTO_REPORT_TEMPERATURES)

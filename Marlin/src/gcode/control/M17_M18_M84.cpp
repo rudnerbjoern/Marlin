@@ -23,6 +23,7 @@
 #include "../gcode.h"
 #include "../../MarlinCore.h" // for stepper_inactive_time, disable_e_steppers
 #include "../../lcd/marlinui.h"
+#include "../../module/motion.h" // for e_axis_mask
 #include "../../module/stepper.h"
 
 #if ENABLED(AUTO_BED_LEVELING_UBL)
@@ -43,7 +44,7 @@ inline stepper_flags_t selected_axis_bits() {
           selected.bits = _BV(INDEX_OF_AXIS(E_AXIS, e));
       }
       else
-        selected.bits = selected.e_bits();
+        selected.bits = e_axis_mask;
     }
   #endif
   selected.bits |= NUM_AXIS_GANG(
@@ -128,17 +129,8 @@ void GcodeSuite::M17() {
             stepper.enable_e_steppers();
         }
       #endif
-      NUM_AXIS_CODE(
-        if (parser.seen_test('X'))        stepper.enable_axis(X_AXIS),
-        if (parser.seen_test('Y'))        stepper.enable_axis(Y_AXIS),
-        if (parser.seen_test('Z'))        stepper.enable_axis(Z_AXIS),
-        if (parser.seen_test(AXIS4_NAME)) stepper.enable_axis(I_AXIS),
-        if (parser.seen_test(AXIS5_NAME)) stepper.enable_axis(J_AXIS),
-        if (parser.seen_test(AXIS6_NAME)) stepper.enable_axis(K_AXIS),
-        if (parser.seen_test(AXIS7_NAME)) stepper.enable_axis(U_AXIS),
-        if (parser.seen_test(AXIS8_NAME)) stepper.enable_axis(V_AXIS),
-        if (parser.seen_test(AXIS9_NAME)) stepper.enable_axis(W_AXIS)
-      );
+      LOOP_NUM_AXES(a)
+        if (parser.seen_test(AXIS_CHAR(a))) stepper.enable_axis((AxisEnum)a);
     }
   }
   else {
@@ -219,7 +211,16 @@ void try_to_disable(const stepper_flags_t to_disable) {
 void GcodeSuite::M18_M84() {
   if (parser.seenval('S')) {
     reset_stepper_timeout();
-    stepper_inactive_time = parser.value_millis_from_seconds();
+    #if HAS_DISABLE_INACTIVE_AXIS
+      const millis_t ms = parser.value_millis_from_seconds();
+      #if LASER_SAFETY_TIMEOUT_MS > 0
+        if (ms && ms <= LASER_SAFETY_TIMEOUT_MS) {
+          SERIAL_ECHO_MSG("M18 timeout must be > ", MS_TO_SEC(LASER_SAFETY_TIMEOUT_MS + 999), " s for laser safety.");
+          return;
+        }
+      #endif
+      stepper_inactive_time = ms;
+    #endif
   }
   else {
     if (parser.seen_axis()) {
@@ -235,22 +236,13 @@ void GcodeSuite::M18_M84() {
               stepper.disable_e_steppers();
           }
         #endif
-        NUM_AXIS_CODE(
-          if (parser.seen_test('X'))        stepper.disable_axis(X_AXIS),
-          if (parser.seen_test('Y'))        stepper.disable_axis(Y_AXIS),
-          if (parser.seen_test('Z'))        stepper.disable_axis(Z_AXIS),
-          if (parser.seen_test(AXIS4_NAME)) stepper.disable_axis(I_AXIS),
-          if (parser.seen_test(AXIS5_NAME)) stepper.disable_axis(J_AXIS),
-          if (parser.seen_test(AXIS6_NAME)) stepper.disable_axis(K_AXIS),
-          if (parser.seen_test(AXIS7_NAME)) stepper.disable_axis(U_AXIS),
-          if (parser.seen_test(AXIS8_NAME)) stepper.disable_axis(V_AXIS),
-          if (parser.seen_test(AXIS9_NAME)) stepper.disable_axis(W_AXIS)
-        );
+        LOOP_NUM_AXES(a)
+          if (parser.seen_test(AXIS_CHAR(a))) stepper.disable_axis((AxisEnum)a);
       }
     }
     else
       planner.finish_and_disable();
 
-    TERN_(AUTO_BED_LEVELING_UBL, ubl.steppers_were_disabled());
+    TERN_(AUTO_BED_LEVELING_UBL, bedlevel.steppers_were_disabled());
   }
 }

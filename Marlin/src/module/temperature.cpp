@@ -71,6 +71,10 @@
   #include "../libs/nozzle.h"
 #endif
 
+#if LASER_SAFETY_TIMEOUT_MS > 0
+  #include "../feature/spindle_laser.h"
+#endif
+
 // MAX TC related macros
 #define TEMP_SENSOR_IS_MAX(n, M) (ENABLED(TEMP_SENSOR_##n##_IS_MAX##M) || (ENABLED(TEMP_SENSOR_REDUNDANT_IS_MAX##M) && REDUNDANT_TEMP_MATCH(SOURCE, E##n)))
 #define TEMP_SENSOR_IS_ANY_MAX_TC(n) (ENABLED(TEMP_SENSOR_##n##_IS_MAX_TC) || (ENABLED(TEMP_SENSOR_REDUNDANT_IS_MAX_TC) && REDUNDANT_TEMP_MATCH(SOURCE, E##n)))
@@ -178,7 +182,7 @@
   #include "tool_change.h"
 #endif
 
-#if USE_BEEPER
+#if HAS_BEEPER
   #include "../libs/buzzer.h"
 #endif
 
@@ -487,6 +491,12 @@ PGMSTR(str_t_heating_failed, STR_T_HEATING_FAILED);
   #endif
 #endif
 
+#if BOTH(HAS_MARLINUI_MENU, PREVENT_COLD_EXTRUSION) && E_MANUAL > 0
+  bool Temperature::allow_cold_extrude_override = false;
+#else
+  constexpr bool Temperature::allow_cold_extrude_override;
+#endif
+
 #if ENABLED(PREVENT_COLD_EXTRUSION)
   bool Temperature::allow_cold_extrude = false;
   celsius_t Temperature::extrude_min_temp = EXTRUDE_MINTEMP;
@@ -741,7 +751,7 @@ volatile bool Temperature::raw_temps_ready = false;
       // Report heater states every 2 seconds
       if (ELAPSED(ms, next_temp_ms)) {
         #if HAS_TEMP_SENSOR
-          print_heater_states(ischamber ? active_extruder : (isbed ? active_extruder : heater_id));
+          print_heater_states(heater_id < 0 ? active_extruder : (int8_t)heater_id);
           SERIAL_EOL();
         #endif
         next_temp_ms = ms + 2000UL;
@@ -988,7 +998,7 @@ volatile bool Temperature::raw_temps_ready = false;
     float asymp_temp = (t2 * t2 - t1 * t3) / (2 * t2 - t1 - t3),
           block_responsiveness = -log((t2 - asymp_temp) / (t1 - asymp_temp)) / (sample_distance * (sample_count >> 1));
 
-    constants.ambient_xfer_coeff_fan0 = constants.heater_power * MPC_MAX / 255 / (asymp_temp - ambient_temp);
+    constants.ambient_xfer_coeff_fan0 = constants.heater_power * (MPC_MAX) / 255 / (asymp_temp - ambient_temp);
     constants.fan255_adjustment = 0.0f;
     constants.block_heat_capacity = constants.ambient_xfer_coeff_fan0 / block_responsiveness;
     constants.sensor_responsiveness = block_responsiveness / (1.0f - (ambient_temp - asymp_temp) * exp(-block_responsiveness * t1_time) / (t1 - asymp_temp));
@@ -1052,7 +1062,7 @@ volatile bool Temperature::raw_temps_ready = false;
     #endif
 
     // Calculate a new and better asymptotic temperature and re-evaluate the other constants
-    asymp_temp = ambient_temp + constants.heater_power / constants.ambient_xfer_coeff_fan0;
+    asymp_temp = ambient_temp + constants.heater_power * (MPC_MAX) / 255 / constants.ambient_xfer_coeff_fan0;
     block_responsiveness = -log((t2 - asymp_temp) / (t1 - asymp_temp)) / (sample_distance * (sample_count >> 1));
     constants.block_heat_capacity = constants.ambient_xfer_coeff_fan0 / block_responsiveness;
     constants.sensor_responsiveness = block_responsiveness / (1.0f - (ambient_temp - asymp_temp) * exp(-block_responsiveness * t1_time) / (t1 - asymp_temp));
@@ -1218,18 +1228,14 @@ int16_t Temperature::getHeaterPower(const heater_id_t heater_id) {
 inline void loud_kill(FSTR_P const lcd_msg, const heater_id_t heater_id) {
   marlin_state = MF_KILLED;
   thermalManager.disable_all_heaters();
-  #if USE_BEEPER
+  #if HAS_BEEPER
     for (uint8_t i = 20; i--;) {
-      WRITE(BEEPER_PIN, HIGH);
-      delay(25);
-      watchdog_refresh();
-      WRITE(BEEPER_PIN, LOW);
-      delay(40);
-      watchdog_refresh();
-      delay(40);
-      watchdog_refresh();
+      hal.watchdog_refresh();
+      buzzer.click(25);
+      delay(80);
+      hal.watchdog_refresh();
     }
-    WRITE(BEEPER_PIN, HIGH);
+    buzzer.on();
   #endif
   #if ENABLED(NOZZLE_PARK_FEATURE)
     if (!homing_needed_error()) {
@@ -1272,7 +1278,7 @@ void Temperature::_temp_error(const heater_id_t heater_id, FSTR_P const serial_m
   }
 
   disable_all_heaters(); // always disable (even for bogus temp)
-  watchdog_refresh();
+  hal.watchdog_refresh();
 
   #if BOGUS_TEMPERATURE_GRACE_PERIOD
     const millis_t ms = millis();
@@ -1440,7 +1446,7 @@ void Temperature::min_temp_error(const heater_id_t heater_id) {
         if (fabs(e_speed) > planner.settings.max_feedrate_mm_s[E_AXIS])
           mpc_e_position = e_position;
         else if (e_speed > 0.0f) {  // Ignore retract/recover moves
-          ambient_xfer_coeff += e_speed * FILAMENT_HEAT_CAPACITY_PERMM;
+          ambient_xfer_coeff += e_speed * constants.filament_heat_capacity_permm;
           mpc_e_position = e_position;
         }
       }
@@ -1636,7 +1642,7 @@ void Temperature::min_temp_error(const heater_id_t heater_id) {
  *  - Update the heated bed PID output value
  */
 void Temperature::manage_heater() {
-  if (marlin_state == MF_INITIALIZING) return watchdog_refresh(); // If Marlin isn't started, at least reset the watchdog!
+  if (marlin_state == MF_INITIALIZING) return hal.watchdog_refresh(); // If Marlin isn't started, at least reset the watchdog!
 
   static bool no_reentry = false;  // Prevent recursion
   if (no_reentry) return;
@@ -1875,7 +1881,7 @@ void Temperature::manage_heater() {
         #endif
         #if ENABLED(CHAMBER_VENT)
           flag_chamber_excess_heat = false;
-          MOVE_SERVO(CHAMBER_VENT_SERVO_NR, 90);
+          servo[CHAMBER_VENT_SERVO_NR].move(90);
         #endif
       }
     #endif
@@ -1891,7 +1897,7 @@ void Temperature::manage_heater() {
           if (flag_chamber_excess_heat) {
             temp_chamber.soft_pwm_amount = 0;
             #if ENABLED(CHAMBER_VENT)
-              if (!flag_chamber_off) MOVE_SERVO(CHAMBER_VENT_SERVO_NR, temp_chamber.celsius <= temp_chamber.target ? 0 : 90);
+              if (!flag_chamber_off) servo[CHAMBER_VENT_SERVO_NR].move(temp_chamber.celsius <= temp_chamber.target ? 0 : 90);
             #endif
           }
           else {
@@ -1904,7 +1910,7 @@ void Temperature::manage_heater() {
               temp_chamber.soft_pwm_amount = temp_chamber.celsius < temp_chamber.target ? (MAX_CHAMBER_POWER) >> 1 : 0;
             #endif
             #if ENABLED(CHAMBER_VENT)
-              if (!flag_chamber_off) MOVE_SERVO(CHAMBER_VENT_SERVO_NR, 0);
+              if (!flag_chamber_off) servo[CHAMBER_VENT_SERVO_NR].move(0);
             #endif
           }
         }
@@ -2385,7 +2391,7 @@ void Temperature::manage_heater() {
  */
 void Temperature::updateTemperaturesFromRawValues() {
 
-  watchdog_refresh(); // Reset because raw_temps_ready was set by the interrupt
+  hal.watchdog_refresh(); // Reset because raw_temps_ready was set by the interrupt
 
   TERN_(TEMP_SENSOR_0_IS_MAX_TC, temp_hotend[0].setraw(READ_MAX_TC(0)));
   TERN_(TEMP_SENSOR_1_IS_MAX_TC, temp_hotend[1].setraw(READ_MAX_TC(1)));
@@ -2703,13 +2709,15 @@ void Temperature::init() {
 
   #if HAS_HOTEND
     #define _TEMP_MIN_E(NR) do{ \
-      const celsius_t tmin = _MAX(HEATER_##NR##_MINTEMP, TERN(TEMP_SENSOR_##NR##_IS_CUSTOM, 0, (int)pgm_read_word(&TEMPTABLE_##NR [TEMP_SENSOR_##NR##_MINTEMP_IND].celsius))); \
+      const celsius_t tmin_tmp = TERN(TEMP_SENSOR_##NR##_IS_CUSTOM, 0, int16_t(pgm_read_word(&TEMPTABLE_##NR [TEMP_SENSOR_##NR##_MINTEMP_IND].celsius))), \
+                      tmin = _MAX(HEATER_##NR##_MINTEMP, tmin_tmp); \
       temp_range[NR].mintemp = tmin; \
       while (analog_to_celsius_hotend(temp_range[NR].raw_min, NR) < tmin) \
         temp_range[NR].raw_min += TEMPDIR(NR) * (OVERSAMPLENR); \
     }while(0)
     #define _TEMP_MAX_E(NR) do{ \
-      const celsius_t tmax = _MIN(HEATER_##NR##_MAXTEMP, TERN(TEMP_SENSOR_##NR##_IS_CUSTOM, 2000, (int)pgm_read_word(&TEMPTABLE_##NR [TEMP_SENSOR_##NR##_MAXTEMP_IND].celsius) - 1)); \
+      const celsius_t tmax_tmp = TERN(TEMP_SENSOR_##NR##_IS_CUSTOM, 2000, int16_t(pgm_read_word(&TEMPTABLE_##NR [TEMP_SENSOR_##NR##_MAXTEMP_IND].celsius)) - 1), \
+                      tmax = _MIN(HEATER_##NR##_MAXTEMP, tmax_tmp); \
       temp_range[NR].maxtemp = tmax; \
       while (analog_to_celsius_hotend(temp_range[NR].raw_max, NR) > tmax) \
         temp_range[NR].raw_max -= TEMPDIR(NR) * (OVERSAMPLENR); \
@@ -2808,6 +2816,9 @@ void Temperature::init() {
 }
 
 #if HAS_THERMAL_PROTECTION
+
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 
   Temperature::tr_state_machine_t Temperature::tr_state_machine[NR_HEATER_RUNAWAY]; // = { { TRInactive, 0 } };
 
@@ -2937,6 +2948,8 @@ void Temperature::init() {
       #endif
     }
   }
+
+  #pragma GCC diagnostic pop
 
 #endif // HAS_THERMAL_PROTECTION
 
@@ -3321,6 +3334,7 @@ public:
 
 /**
  * Handle various ~1kHz tasks associated with temperature
+ *  - Check laser safety timeout
  *  - Heater PWM (~1kHz with scaler)
  *  - LCD Button polling (~500Hz)
  *  - Start / Read one ADC sensor
@@ -3329,6 +3343,14 @@ public:
  *  - Planner clean buffer
  */
 void Temperature::isr() {
+
+  // Shut down the laser if steppers are inactive for > LASER_SAFETY_TIMEOUT_MS ms
+  #if LASER_SAFETY_TIMEOUT_MS > 0
+    if (cutter.last_power_applied && ELAPSED(millis(), gcode.previous_move_ms + (LASER_SAFETY_TIMEOUT_MS))) {
+      cutter.power = 0;       // Prevent planner idle from re-enabling power
+      cutter.apply_power(0);
+    }
+  #endif
 
   static int8_t temp_count = -1;
   static ADCSensorState adc_sensor_state = StartupDelay;
@@ -3652,6 +3674,9 @@ void Temperature::isr() {
 
   switch (adc_sensor_state) {
 
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+
     case SensorsReady: {
       // All sensors have been read. Stay in this state for a few
       // ISRs to save on calls to temp update/checking code below.
@@ -3668,6 +3693,8 @@ void Temperature::isr() {
         next_sensor_state = (ADCSensorState)(int(StartSampling) + 1);
       }
     }
+
+    #pragma GCC diagnostic pop
 
     case StartSampling:                                   // Start of sampling loops. Do updates/checks.
       if (++temp_count >= OVERSAMPLENR) {                 // 10 * 16 * 1/(16000000/64/256)  = 164ms.
@@ -3900,7 +3927,7 @@ void Temperature::isr() {
     delay(2);
   }
 
-  void Temperature::print_heater_states(const uint8_t target_extruder
+  void Temperature::print_heater_states(const int8_t target_extruder
     OPTARG(HAS_TEMP_REDUNDANT, const bool include_r/*=false*/)
   ) {
     #if HAS_TEMP_HOTEND
