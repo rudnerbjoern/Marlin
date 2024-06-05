@@ -53,6 +53,10 @@
   #include "e3v2/proui/dwin.h"
 #endif
 
+#if ALL(HAS_STATUS_MESSAGE, IS_DWIN_MARLINUI)
+  #include "e3v2/marlinui/marlinui_dwin.h" // for LCD_WIDTH
+#endif
+
 typedef bool (*statusResetFunc_t)();
 
 #if HAS_WIRED_LCD
@@ -101,7 +105,8 @@ typedef bool (*statusResetFunc_t)();
   enum HD44780CharSet : uint8_t {
     CHARSET_MENU,
     CHARSET_INFO,
-    CHARSET_BOOT
+    CHARSET_BOOT,
+    CHARSET_BOOT_CUSTOM
   };
 #endif
 
@@ -177,7 +182,7 @@ typedef bool (*statusResetFunc_t)();
       static bool constexpr processing = false;
     #endif
     static void task();
-    static void soon(const AxisEnum axis OPTARG(MULTI_E_MANUAL, const int8_t eindex=active_extruder));
+    static void soon(const AxisEnum move_axis OPTARG(MULTI_E_MANUAL, const int8_t eindex=active_extruder));
   };
 
   void lcd_move_axis(const AxisEnum);
@@ -250,6 +255,11 @@ public:
     }
   #endif
 
+  #if (HAS_WIRED_LCD && HAS_ENCODER_ACTION && HAS_MARLINUI_ENCODER) || HAS_DWIN_E3V2 || HAS_TFT_LVGL_UI
+    #define MARLINUI_ENCODER_DELTA 1
+    static int8_t get_encoder_delta(const millis_t &now=millis());
+  #endif
+
   #if HAS_MEDIA
     #define MEDIA_MENU_GATEWAY TERN(PASSWORD_ON_SD_PRINT_MENU, password.media_gatekeeper, menu_media)
     static void media_changed(const uint8_t old_stat, const uint8_t stat);
@@ -296,14 +306,6 @@ public:
 
   static void sleep_display(const bool=true) IF_DISABLED(HAS_DISPLAY_SLEEP, {});
   static void wake_display() { sleep_display(false); }
-
-  #if HAS_DWIN_E3V2_BASIC
-    static void refresh();
-  #else
-    FORCE_INLINE static void refresh() {
-      TERN_(HAS_WIRED_LCD, refresh(LCDVIEW_CLEAR_CALL_REDRAW));
-    }
-  #endif
 
   #if HAS_PRINT_PROGRESS_PERMYRIAD
     typedef uint16_t progress_t;
@@ -368,7 +370,7 @@ public:
     static constexpr uint8_t get_progress_percent() { return 0; }
   #endif
 
-  static void host_notify_P(PGM_P const fstr);
+  static void host_notify_P(PGM_P const pstr);
   static void host_notify(FSTR_P const fstr) { host_notify_P(FTOP(fstr)); }
   static void host_notify(const char * const cstr);
 
@@ -393,6 +395,7 @@ public:
 
     #if ENABLED(STATUS_MESSAGE_SCROLLING)
       static uint8_t status_scroll_offset;
+      static void reset_status_scroll() { status_scroll_offset = 0; }
       static void advance_status_scroll();
       static char* status_and_len(uint8_t &len);
     #endif
@@ -509,6 +512,11 @@ public:
 
   // Periodic or as-needed display update
   static void update() IF_DISABLED(HAS_UI_UPDATE, {});
+
+  // Tell the screen to redraw on the next call
+  FORCE_INLINE static void refresh() {
+    TERN_(HAS_WIRED_LCD, refresh(LCDVIEW_CLEAR_CALL_REDRAW));
+  }
 
   #if HAS_DISPLAY
 
@@ -755,7 +763,7 @@ public:
     static bool use_click() { return false; }
   #endif
 
-  #if ENABLED(ADVANCED_PAUSE_FEATURE) && ANY(HAS_MARLINUI_MENU, EXTENSIBLE_UI, DWIN_LCD_PROUI, DWIN_CREALITY_LCD_JYERSUI)
+  #if ENABLED(ADVANCED_PAUSE_FEATURE) && ANY(HAS_MARLINUI_MENU, EXTENSIBLE_UI, DWIN_CREALITY_LCD_JYERSUI)
     static void pause_show_message(const PauseMessage message, const PauseMode mode=PAUSE_MODE_SAME, const uint8_t extruder=active_extruder);
   #else
     static void _pause_show_message() {}
