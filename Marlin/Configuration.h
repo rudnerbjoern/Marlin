@@ -50,7 +50,7 @@
  *
  * Calibration Guides:  https://reprap.org/wiki/Calibration
  *                      https://reprap.org/wiki/Triffid_Hunter%27s_Calibration_Guide
- *                      https://web.archive.org/web/20220907014303/https://sites.google.com/site/repraplogphase/calibration-of-your-reprap
+ *                      https://web.archive.org/web/20220907014303/sites.google.com/site/repraplogphase/calibration-of-your-reprap
  *                      https://youtu.be/wAL9d7FgInk
  *                      https://teachingtechyt.github.io/calibration.html
  *
@@ -77,7 +77,7 @@
  * Serial port -1 is the USB emulated serial port, if available.
  * Note: The first serial port (-1 or 0) will always be used by the Arduino bootloader.
  *
- * :[-1, 0, 1, 2, 3, 4, 5, 6, 7]
+ * :[-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
  */
 #define SERIAL_PORT 2
 
@@ -99,7 +99,7 @@
 /**
  * Select a secondary serial port on the board to use for communication with the host.
  * Currently Ethernet (-2) is only supported on Teensy 4.1 boards.
- * :[-2, -1, 0, 1, 2, 3, 4, 5, 6, 7]
+ * :[-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
  */
 #define SERIAL_PORT_2 -1
 //#define BAUDRATE_2 250000   // :[2400, 9600, 19200, 38400, 57600, 115200, 250000, 500000, 1000000] Enable to override BAUDRATE
@@ -107,10 +107,20 @@
 /**
  * Select a third serial port on the board to use for communication with the host.
  * Currently only supported for AVR, DUE, LPC1768/9 and STM32/STM32F1
- * :[-1, 0, 1, 2, 3, 4, 5, 6, 7]
+ * :[-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
  */
 //#define SERIAL_PORT_3 1
 //#define BAUDRATE_3 250000   // :[2400, 9600, 19200, 38400, 57600, 115200, 250000, 500000, 1000000] Enable to override BAUDRATE
+
+/**
+ * Select a serial port to communicate with RS485 protocol
+ * :[-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+ */
+//#define RS485_SERIAL_PORT 1
+#ifdef RS485_SERIAL_PORT
+  //#define M485_PROTOCOL 1   // Check your host for protocol compatibility
+  //#define RS485_BUS_BUFFER_SIZE 128
+#endif
 
 // Enable the Bluetooth serial interface on AT90USB devices
 //#define BLUETOOTH
@@ -710,6 +720,9 @@
  */
 #if ENABLED(MPCTEMP)
   #define MPC_AUTOTUNE                                // Include a method to do MPC auto-tuning (~6.3K bytes of flash)
+  #if ENABLED(MPC_AUTOTUNE)
+    //#define MPC_AUTOTUNE_DEBUG                      // Enable MPC debug logging (~870 bytes of flash)
+  #endif
   //#define MPC_EDIT_MENU                             // Add MPC editing to the "Advanced Settings" menu. (~1.3K bytes of flash)
   //#define MPC_AUTOTUNE_MENU                         // Add MPC auto-tuning to the "Advanced Settings" menu. (~350 bytes of flash)
 
@@ -1457,7 +1470,7 @@
  * A lightweight, solenoid-driven probe.
  * For information about this sensor https://github.com/bigtreetech/MicroProbe
  *
- * Also requires: PROBE_ENABLE_DISABLE
+ * Also requires: PROBE_ENABLE_DISABLE, ENDSTOP_INTERRUPTS_FEATURE if FT_MOTION is enabled.
  */
 //#define BIQU_MICROPROBE_V1  // Triggers HIGH
 //#define BIQU_MICROPROBE_V2  // Triggers LOW
@@ -1719,6 +1732,8 @@
   #define PROBING_BED_TEMP     50
 #endif
 
+// @section stepper drivers
+
 // For Inverting Stepper Enable Pins (Active Low) use 0, Non Inverting (Active High) use 1
 // :{ 0:'Low', 1:'High' }
 #define X_ENABLE_ON 0
@@ -1893,6 +1908,8 @@
 #endif
 
 /**
+ * @section filament runout sensors
+ *
  * Filament Runout Sensors
  * Mechanical or opto endstops are used to check for the presence of filament.
  *
@@ -2415,9 +2432,9 @@
 #define PREHEAT_2_TEMP_CHAMBER 35
 #define PREHEAT_2_FAN_SPEED     0 // Value from 0 to 255
 
-// @section motion
-
 /**
+ * @section nozzle park
+ *
  * Nozzle Park
  *
  * Park the nozzle at the given XYZ position on idle or G27.
@@ -2440,6 +2457,8 @@
 #endif
 
 /**
+ * @section nozzle clean
+ *
  * Clean Nozzle Feature
  *
  * Adds the G12 command to perform a nozzle cleaning process.
@@ -2600,9 +2619,24 @@
   //#include "Configuration_Secure.h"       // External file with PASSWORD_DEFAULT_VALUE
 #endif
 
-//=============================================================================
-//============================= LCD and SD support ============================
-//=============================================================================
+// @section media
+
+/**
+ * SD CARD
+ *
+ * SD Card support is disabled by default. If your controller has an SD slot,
+ * you must uncomment the following option or it won't work.
+ */
+//#define SDSUPPORT
+
+/**
+ * SD CARD: ENABLE CRC
+ *
+ * Use CRC checks and retries on the SD communication.
+ */
+#if ENABLED(SDSUPPORT)
+  //#define SD_CHECK_AND_RETRY
+#endif
 
 // @section interface
 
@@ -2792,7 +2826,7 @@
 
 //
 // Original RADDS LCD Display+Encoder+SDCardReader
-// https://web.archive.org/web/20200719145306/http://doku.radds.org/dokumentation/lcd-display/
+// https://web.archive.org/web/20200719145306/doku.radds.org/dokumentation/lcd-display/
 //
 //#define RADDS_DISPLAY
 
@@ -2858,7 +2892,7 @@
 
 //
 // Elefu RA Board Control Panel
-// https://web.archive.org/web/20140823033947/http://www.elefu.com/index.php?route=product/product&product_id=53
+// https://web.archive.org/web/20140823033947/www.elefu.com/index.php?route=product/product&product_id=53
 //
 //#define RA_CONTROL_PANEL
 
@@ -2990,7 +3024,7 @@
 
 //
 // Cartesio UI
-// https://web.archive.org/web/20180605050442/http://mauk.cc/webshop/cartesio-shop/electronics/user-interface
+// https://web.archive.org/web/20180605050442/mauk.cc/webshop/cartesio-shop/electronics/user-interface
 //
 //#define CARTESIO_UI
 
@@ -3422,7 +3456,9 @@
   #define BUTTON_DELAY_EDIT      50 // (ms) Button repeat delay for edit screens
   #define BUTTON_DELAY_MENU     250 // (ms) Button repeat delay for menus
 
-  //#define DISABLE_ENCODER         // Disable the click encoder, if any
+  #if ANY(TFT_CLASSIC_UI, TFT_COLOR_UI)
+    //#define NO_BACK_MENU_ITEM     // Don't display a top menu item to go back to the parent menu
+  #endif
 
   #define TOUCH_SCREEN_CALIBRATION
 
